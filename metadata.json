@@ -1,0 +1,6 @@
+{
+  "name": "MoveBuddy",
+  "description": "An interactive, cinematic story introducing MoveBuddy: India's safest and smartest recurring commute platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
