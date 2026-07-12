@@ -116,34 +116,43 @@ class MoveBuddyAudioEngine {
     try {
       this.stopAlarm(); // Ensure no duplicates
 
-      this.alarmGain = this.ctx.createGain();
-      this.alarmGain.gain.setValueAtTime(0, this.ctx.currentTime);
-      this.alarmGain.connect(this.ctx.destination);
-
-      let beeping = false;
+      // Play a beautiful, natural mechanical double-bell alarm ring
+      let strikeIndex = 0;
       this.alarmInterval = setInterval(() => {
         if (!this.ctx || this.isMuted) return;
 
-        if (!beeping) {
-          // Alarm beep sound (800 Hz pure sine)
-          this.alarmOsc = this.ctx.createOscillator();
-          this.alarmOsc.type = "sine";
-          this.alarmOsc.frequency.setValueAtTime(880, this.ctx.currentTime); // A5 note
+        const now = this.ctx.currentTime;
+        
+        // Simulating the rapid striking of a mechanical double-bell alarm (classic bell ringing)
+        // Two main resonant frequencies representing the two bells (e.g., 980 Hz and 1320 Hz)
+        const freqs = [980, 1320];
+        
+        freqs.forEach((freq, idx) => {
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const oscGain = this.ctx.createGain();
 
-          const tempGain = this.ctx.createGain();
-          tempGain.gain.setValueAtTime(0, this.ctx.currentTime);
-          tempGain.gain.linearRampToValueAtTime(0.18, this.ctx.currentTime + 0.05);
-          tempGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.35);
+          // Combine sine and triangle for a warmer, metallic ringing texture
+          osc.type = idx === 0 ? "sine" : "triangle";
+          
+          // Add slight pitch variations per strike to make it feel organic
+          const jitter = Math.sin(strikeIndex * 2.3) * 8;
+          osc.frequency.setValueAtTime(freq + jitter, now);
 
-          this.alarmOsc.connect(tempGain);
-          tempGain.connect(this.ctx.destination);
+          // Fast mechanical strike decay envelope
+          oscGain.gain.setValueAtTime(0, now);
+          oscGain.gain.linearRampToValueAtTime(idx === 0 ? 0.08 : 0.04, now + 0.005);
+          oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
 
-          this.alarmOsc.start();
-          this.alarmOsc.stop(this.ctx.currentTime + 0.4);
-          beeping = true;
-          setTimeout(() => { beeping = false; }, 500);
-        }
-      }, 700);
+          osc.connect(oscGain);
+          oscGain.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.15);
+        });
+
+        strikeIndex++;
+      }, 130); // 130ms repeat represents a realistic mechanical metal hammer speed (tremolo)
 
     } catch (e) {
       console.error("Error starting alarm synth:", e);

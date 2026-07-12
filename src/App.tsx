@@ -19,13 +19,13 @@ import { audio } from "./utils/audio";
 const narrativeTimeline = [
   {
     range: [0.00, 0.10],
-    title: "WHAT IF YOUR COMMUTE WAS ENJOYABLE?",
+    title: "WHAT IF EVERY COMMUTE FELT EFFORTLESS?",
     text: "Millions of professionals commute alone daily through heavy metropolitan traffic, surge pricing, and sudden cancellations. What if there was a smarter, connected way?"
   },
   {
     range: [0.10, 0.28],
     title: "EVERY MORNING BEGINS THE SAME.",
-    text: "The alarm rings. Surge rates spike up to 4x. Drivers cancel in your critical hour. The stress starts before you even step outside your apartment."
+    text: "The alarm rings. Surge rates spike up to 2x. Drivers cancel in your critical hour. The stress starts before you even step outside your apartment."
   },
   {
     range: [0.28, 0.44],
@@ -35,11 +35,11 @@ const narrativeTimeline = [
   {
     range: [0.44, 0.58],
     title: "VERIFICATION IS INSTANT. SAFETY IS MUTUAL.",
-    text: "Two-sided identity checks, corporate email verification, and digital security PIN keys ensure every host and guest rides in complete, trusted comfort."
+    text: "Two-sided identity checks and digital security PIN keys ensure every host and guest rides in complete, trusted comfort."
   },
   {
     range: [0.58, 0.70],
-    title: "ONE ROUTE. TWO PEOPLE. AUTOPILOT CO-COMMUTING.",
+    title: "ONE ROUTE. TWO PEOPLE. ALGORITHM-BASED CO-COMMUTING.",
     text: "Enjoy comfortable daily rides, reduce carbon emissions by over 60%, and reclaim your mornings. No repetitive bookings, no negotiation."
   },
   {
@@ -50,7 +50,7 @@ const narrativeTimeline = [
   {
     range: [0.88, 0.94],
     title: "A SMARTER RECURRING NETWORK.",
-    text: "Aman reaches his workspace tech park. Rohit covers his fuel expenses. One seamless co-commute covers and saves up to 75% on daily transit fees."
+    text: "Aman reaches his workspace tech park. Rohit covers his fuel expenses. One seamless co-commute covers and saves up to 40% on daily transit fees."
   },
   {
     range: [0.94, 0.97],
@@ -62,6 +62,7 @@ const narrativeTimeline = [
 export default function App() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const storyContainerRef = useRef<HTMLDivElement>(null);
@@ -86,7 +87,7 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Handle local waitlist email submission
+  // Handle local waitlist email and phone submission
   const handleSubmitEmail = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) return;
@@ -141,16 +142,16 @@ export default function App() {
           </span>
         </div>
 
-        {/* Custom progress capsule */}
-        <div className="hidden md:flex items-center gap-3 bg-[#e9eaec]/60 backdrop-blur-md px-4 py-2 rounded-full border border-[#2a2e34]/15">
-          <span className="font-mono text-[9px] font-bold text-[#2a2e34]/70">THE JOURNEY</span>
-          <div className="w-24 h-[3px] bg-[#2a2e34]/15 rounded-full overflow-hidden">
+        {/* Custom progress capsule - High-contrast & always visible on mobile/desktop */}
+        <div className="flex items-center gap-2 sm:gap-3 bg-[#e9eaec]/90 backdrop-blur-lg px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#2a2e34]/25 shadow-lg pointer-events-auto">
+          <span className="font-mono text-[10px] sm:text-xs font-black text-[#2a2e34] tracking-wider mr-1.5 sm:mr-3">THE JOURNEY</span>
+          <div className="w-12 sm:w-24 h-[4px] bg-[#2a2e34]/20 rounded-full overflow-hidden">
             <div 
               className="h-full bg-[#ffb300] transition-all duration-300"
               style={{ width: `${scrollProgress * 100}%` }}
             />
           </div>
-          <span className="font-mono text-[9px] font-bold text-[#ffb300]" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <span className="font-mono text-[10px] sm:text-xs font-black text-[#ffb300]" style={{ fontVariantNumeric: "tabular-nums" }}>
             {Math.round(scrollProgress * 100)}%
           </span>
         </div>
@@ -193,10 +194,10 @@ export default function App() {
                 {activeNarrative.text}
               </p>
 
-              {/* Interactive micro prompt to scroll */}
-              <div className="flex items-center gap-1.5 pt-1 text-[8px] sm:text-[9px] font-mono font-bold text-[#2a2e34]/40 uppercase tracking-widest">
+              {/* Interactive micro prompt to scroll - high contrast and readability */}
+              <div className="flex items-center gap-1.5 pt-2 text-[10px] sm:text-xs font-mono font-black text-[#2a2e34]/80 uppercase tracking-widest">
                 <span>SCROLL TO CONTINUE THE STORY</span>
-                <span className="animate-bounce">↓</span>
+                <span className="text-[#ffb300] animate-bounce text-xs sm:text-sm font-black">↓</span>
               </div>
             </motion.div>
           )}
@@ -212,6 +213,8 @@ export default function App() {
             key="final-cinematic"
             email={email}
             setEmail={setEmail}
+            phone={phone}
+            setPhone={setPhone}
             isSubmitted={isSubmitted}
             handleSubmitEmail={handleSubmitEmail}
             handleCopyEmail={handleCopyEmail}

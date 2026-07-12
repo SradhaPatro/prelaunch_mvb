@@ -11,7 +11,8 @@ import {
   Volume2,
   RotateCcw,
   Sparkles,
-  ChevronLast
+  ChevronLast,
+  Phone
 } from "lucide-react";
 import { audio } from "../utils/audio";
 
@@ -20,6 +21,8 @@ interface FinalCinematicProps {
   onReplay?: () => void;
   email: string;
   setEmail: (val: string) => void;
+  phone: string;
+  setPhone: (val: string) => void;
   isSubmitted: boolean;
   handleSubmitEmail: (e: React.FormEvent) => void;
   handleCopyEmail: () => void;
@@ -32,6 +35,8 @@ export default function FinalCinematic({
   onReplay,
   email,
   setEmail,
+  phone,
+  setPhone,
   isSubmitted,
   handleSubmitEmail,
   handleCopyEmail,
@@ -176,9 +181,9 @@ export default function FinalCinematic({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.8 }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-6"
+              className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6"
             >
-              <div className="w-full max-w-4xl aspect-[16/10] md:aspect-[16/9] bg-[#e9eaec] border border-[#2a2e34]/15 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
+              <div className="w-full max-w-4xl aspect-[4/3] xs:aspect-[16/11] sm:aspect-[16/10] md:aspect-[16/9] bg-[#e9eaec] border border-[#2a2e34]/15 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
                 
                 {/* SVG Visual Stage */}
                 <div className="flex-1 w-full relative overflow-hidden bg-gradient-to-b from-[#d8dadf]/30 to-[#e9eaec]">
@@ -511,9 +516,9 @@ export default function FinalCinematic({
                 </div>
 
                 {/* Subtitle card */}
-                <div className="bg-[#2a2e34] text-[#e9eaec] p-5 text-center flex flex-col items-center justify-center border-t border-white/5 space-y-1">
-                  <span className="font-mono text-[9px] font-black text-[#ffb300] tracking-widest uppercase">A NEW MORNING CONQUERED</span>
-                  <p className="font-sans text-[11px] font-bold tracking-tight text-[#e9eaec]/80">Aman arrives safely. Both take off their helmets and exchange smiles. The morning routine is conquered.</p>
+                <div className="bg-[#2a2e34] text-[#e9eaec] p-3 sm:p-5 text-center flex flex-col items-center justify-center border-t border-white/5 space-y-1">
+                  <span className="font-mono text-[8px] sm:text-[9px] font-black text-[#ffb300] tracking-widest uppercase">A NEW MORNING CONQUERED</span>
+                  <p className="font-sans text-[10px] sm:text-[11px] font-bold tracking-tight text-[#e9eaec]/80">Aman arrives safely. Both take off their helmets and exchange smiles. The morning routine is conquered.</p>
                 </div>
 
               </div>
@@ -530,9 +535,9 @@ export default function FinalCinematic({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.08 }}
               transition={{ duration: 0.9, ease: "easeInOut" }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-6"
+              className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6"
             >
-              <div className="w-full max-w-4xl aspect-[16/10] md:aspect-[16/9] bg-[#2a2e34] border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
+              <div className="w-full max-w-4xl aspect-[4/3] xs:aspect-[16/11] sm:aspect-[16/10] md:aspect-[16/9] bg-[#2a2e34] border border-white/10 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
                 
                 {/* SVG Route Networks */}
                 <div className="flex-1 w-full relative overflow-hidden bg-gradient-to-b from-[#1b1e22] to-[#2a2e34]">
@@ -631,12 +636,12 @@ export default function FinalCinematic({
                   </svg>
 
                   {/* Text Manifestos Fading In */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center space-y-4 pointer-events-none bg-black/45">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-3 sm:p-6 text-center space-y-2 sm:space-y-4 pointer-events-none bg-black/50">
                     <motion.h2 
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.8, delay: 0.5 }}
-                      className="font-display font-black text-2xl sm:text-3xl md:text-4xl text-white uppercase tracking-tight max-w-2xl"
+                      className="font-display font-black text-base xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl text-white uppercase tracking-tight max-w-md sm:max-w-2xl px-2"
                     >
                       "You're not watching one ride."
                     </motion.h2>
@@ -645,7 +650,7 @@ export default function FinalCinematic({
                       initial={{ opacity: 0, y: 25 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.8, delay: 1.8 }}
-                      className="font-sans text-sm sm:text-base md:text-lg text-[#ffb300] font-bold max-w-xl"
+                      className="font-sans text-[10px] sm:text-xs md:text-sm lg:text-base text-[#ffb300] font-bold max-w-xs sm:max-w-xl px-2"
                     >
                       "You're watching the future of daily commuting."
                     </motion.p>
@@ -654,9 +659,9 @@ export default function FinalCinematic({
                 </div>
 
                 {/* Subtitle bottom card */}
-                <div className="bg-[#1b1e22] text-[#e9eaec]/60 p-5 text-center flex flex-col items-center justify-center border-t border-white/5 space-y-1">
-                  <span className="font-mono text-[9px] font-black text-[#ffb300] tracking-widest uppercase">CONNECTED PATHWAYS</span>
-                  <p className="font-sans text-[11px] text-[#e9eaec]/80 font-bold">Every route is integrated. Connecting daily routes for thousands of commuters.</p>
+                <div className="bg-[#1b1e22] text-[#e9eaec]/60 p-3 sm:p-5 text-center flex flex-col items-center justify-center border-t border-white/5 space-y-1">
+                  <span className="font-mono text-[8px] sm:text-[9px] font-black text-[#ffb300] tracking-widest uppercase">CONNECTED PATHWAYS</span>
+                  <p className="font-sans text-[10px] sm:text-[11px] text-[#e9eaec]/80 font-bold">Every route is integrated. Connecting daily routes for thousands of commuters.</p>
                 </div>
 
               </div>
@@ -673,9 +678,9 @@ export default function FinalCinematic({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
               transition={{ duration: 0.8 }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-[#e9eaec]"
+              className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6 bg-[#e9eaec]"
             >
-              <div className="w-full max-w-4xl aspect-[16/10] md:aspect-[16/9] bg-[#e9eaec] border border-[#2a2e34]/15 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
+              <div className="w-full max-w-4xl aspect-[4/3] xs:aspect-[16/11] sm:aspect-[16/10] md:aspect-[16/9] bg-[#e9eaec] border border-[#2a2e34]/15 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
                 
                 <div className="flex-1 w-full relative overflow-hidden bg-gradient-to-b from-[#d8dadf]/20 to-[#e9eaec] flex items-center justify-center">
                   
@@ -752,9 +757,9 @@ export default function FinalCinematic({
                 </div>
 
                 {/* Subtitle card */}
-                <div className="bg-[#2a2e34] text-[#e9eaec]/60 p-5 text-center flex flex-col items-center justify-center border-t border-white/5 space-y-1">
-                  <span className="font-mono text-[9px] font-black text-[#ffb300] tracking-widest uppercase">THE UNIFIED NETWORK</span>
-                  <p className="font-sans text-[11px] text-[#e9eaec]/80 font-bold">Daily commuting paths come together to shape the unified MoveBuddy community.</p>
+                <div className="bg-[#2a2e34] text-[#e9eaec]/60 p-3 sm:p-5 text-center flex flex-col items-center justify-center border-t border-white/5 space-y-1">
+                  <span className="font-mono text-[8px] sm:text-[9px] font-black text-[#ffb300] tracking-widest uppercase">THE UNIFIED NETWORK</span>
+                  <p className="font-sans text-[10px] sm:text-[11px] text-[#e9eaec]/80 font-bold">Daily commuting paths come together to shape the unified MoveBuddy community.</p>
                 </div>
 
               </div>
@@ -811,7 +816,7 @@ export default function FinalCinematic({
                       <h3 className="font-mono text-[10px] font-black text-[#2a2e34]/40 uppercase tracking-[0.4em] mb-2">EVERY MORNING. MADE BETTER.</h3>
                       <h1 className="font-display font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#2a2e34] leading-tight uppercase tracking-tight">
                         One Ride.<br />
-                        One Community.<br />
+                        One Platform.<br />
                         <span className="text-[#ffb300]">One Smarter Commute.</span>
                       </h1>
                     </motion.div>
@@ -951,20 +956,30 @@ export default function FinalCinematic({
                   </p>
 
                   {!isSubmitted ? (
-                    <form onSubmit={handleSubmitEmail} className="space-y-3 relative z-10">
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <input 
-                          type="email" 
-                          required
-                          placeholder="yourname@workplace.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-[#ffb300] focus:border-[#ffb300] transition-all"
-                        />
+                    <form onSubmit={handleSubmitEmail} className="space-y-3 relative z-10 w-full">
+                      <div className="flex flex-col gap-2.5">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <input 
+                            type="email" 
+                            required
+                            placeholder="yourname@workplace.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-[#ffb300] focus:border-[#ffb300] transition-all"
+                          />
+                          <input 
+                            type="tel" 
+                            required
+                            placeholder="Phone Number"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-[#ffb300] focus:border-[#ffb300] transition-all"
+                          />
+                        </div>
                         
                         <button 
                           type="submit"
-                          className="bg-[#ffb300] hover:bg-[#ffb300]/95 text-[#2a2e34] text-xs font-black px-5 py-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="w-full bg-[#ffb300] hover:bg-[#ffb300]/95 text-[#2a2e34] text-xs font-black py-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           Join the Waitlist <ArrowRight className="w-3.5 h-3.5" />
                         </button>
@@ -974,7 +989,7 @@ export default function FinalCinematic({
                     <motion.div 
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="space-y-2 py-1 text-center relative z-10 bg-white/5 rounded-2xl p-4 border border-white/5"
+                      className="space-y-2 py-1 text-center relative z-10 bg-white/5 rounded-2xl p-4 border border-white/5 w-full"
                     >
                       <div className="w-8 h-8 bg-[#ffb300]/10 rounded-full flex items-center justify-center mx-auto mb-1">
                         <Check className="w-4 h-4 text-[#ffb300]" />
@@ -997,50 +1012,69 @@ export default function FinalCinematic({
                   )}
                 </motion.div>
 
-                {/* 4. Elegant Action Cards Below */}
+                {/* 4. Elegant Action Cards Below - Responsive 3-Column Grid */}
                 <motion.div 
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
-                  className="w-full max-w-md grid grid-cols-2 gap-3 text-left"
+                  className="w-full max-w-md sm:max-w-xl grid grid-cols-1 sm:grid-cols-3 gap-3 text-left"
                 >
                   {/* Follow Journey card */}
                   <a 
                     href="https://www.instagram.com/movebuddy.io?igsh=MWJmZmozajUxM3J0OA=="
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between aspect-video group"
+                    className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between sm:h-24 group"
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start mb-2">
                       <span className="p-1.5 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]/20 rounded-xl">
                         <Instagram className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
                       </span>
                       <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
                     </div>
                     <div>
-                      <h4 className="font-display font-black text-[10px] tracking-wide text-[#2a2e34] uppercase">Follow us on Instagram</h4>
+                      <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Instagram</h4>
                       <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50">@movebuddy.io</span>
                     </div>
                   </a>
 
-                  {/* Mail feedback card */}
-                  <button 
-                    onClick={handleCopyEmail}
-                    className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between aspect-video text-left group cursor-pointer"
+                  {/* Mail feedback card - directly clickable with mailto */}
+                  <a 
+                    href="mailto:Subratpradhan.mb@gmail.com"
+                    className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between sm:h-24 text-left group"
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start mb-2">
                       <span className="p-1.5 bg-[#ffb300]/10 rounded-xl">
                         <Mail className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
                       </span>
                       <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
                     </div>
                     <div>
-                      <h4 className="font-display font-black text-[10px] tracking-wide text-[#2a2e34] uppercase">Contact</h4>
+                      <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Email Us</h4>
                       <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50 leading-none block truncate">
-                        {copiedEmail ? "COPIED EMAIL!" : "Subratpradhan.mb@gmail.com"}
+                        Subratpradhan.mb@gmail.com
                       </span>
                     </div>
-                  </button>
+                  </a>
+
+                  {/* Phone feedback card - directly clickable with tel */}
+                  <a 
+                    href="tel:+918249089921"
+                    className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between sm:h-24 text-left group"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="p-1.5 bg-[#ffb300]/10 rounded-xl">
+                        <Phone className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
+                    </div>
+                    <div>
+                      <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Call Us</h4>
+                      <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50 leading-none block">
+                        +91 82490 89921
+                      </span>
+                    </div>
+                  </a>
                 </motion.div>
 
                 {/* ==========================================
@@ -1104,7 +1138,7 @@ export default function FinalCinematic({
                           exit={{ opacity: 0 }}
                           className="font-mono text-[8px] font-bold text-[#2a2e34] tracking-widest uppercase"
                         >
-                          Autopilot Commute Engaged...
+                          Algorithm-Based Co-Commuting Engaged...
                         </motion.span>
                       )}
                     </AnimatePresence>

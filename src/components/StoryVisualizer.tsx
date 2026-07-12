@@ -100,75 +100,78 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
 
   // Synchronize browser sound synthesis based on camera progress
   useEffect(() => {
-    let currentSceneIdx = 0;
-    const p = smoothProgress;
-    if (p < 0.12) currentSceneIdx = 0; // Opening India Map
-    else if (p < 0.35) currentSceneIdx = 1; // Alarm room
-    else if (p < 0.55) currentSceneIdx = 2; // Bike starting
-    else if (p < 0.70) currentSceneIdx = 3; // Meeting
-    else if (p < 0.88) currentSceneIdx = 4; // active commute
-    else if (p < 0.95) currentSceneIdx = 5; // Arrival
-    else currentSceneIdx = 6; // Sky Network
-
-    if (currentSceneIdx === lastTriggeredScene.current) return;
-    lastTriggeredScene.current = currentSceneIdx;
-
     try {
-      if (currentSceneIdx === 0) {
-        audio.stopAlarm();
-        audio.stopEngine();
-      } else if (currentSceneIdx === 1) {
-        // Commuter sleeping, alarm triggers
+      const p = smoothProgress;
+      // Alarm condition: only between 0.12 and 0.16 (before Aman wakes up and turns it off)
+      if (p >= 0.12 && p < 0.16) {
         audio.startAlarm();
-        audio.stopEngine();
-      } else if (currentSceneIdx === 2) {
-        // Starts his bike
-        audio.stopAlarm();
-        audio.startEngine();
-        audio.updateEngineRPM(0.3);
-      } else if (currentSceneIdx === 3) {
-        // Met up
-        audio.stopAlarm();
-        audio.updateEngineRPM(0.1);
-      } else if (currentSceneIdx === 4) {
-        // Commuting! Pitch revs high
-        audio.stopAlarm();
-        audio.startEngine();
-        audio.updateEngineRPM(0.7);
-      } else if (currentSceneIdx === 5) {
-        // Arrives and pays
-        audio.stopAlarm();
-        audio.stopEngine();
-        audio.playPaymentDing();
       } else {
         audio.stopAlarm();
+      }
+
+      // Engine conditions
+      if (p >= 0.42 && p < 0.58) {
+        // Starts his bike
+        audio.startEngine();
+        audio.updateEngineRPM(0.3);
+      } else if (p >= 0.58 && p < 0.70) {
+        // Met up
+        audio.updateEngineRPM(0.1);
+      } else if (p >= 0.70 && p < 0.88) {
+        // Commuting! Pitch revs high
+        audio.startEngine();
+        audio.updateEngineRPM(0.7);
+      } else if (p >= 0.88 && p < 0.94) {
+        // Arrives
         audio.stopEngine();
+      } else {
+        audio.stopEngine();
+      }
+
+      // Arrival trigger (payment ding on arrival point)
+      if (p >= 0.88 && p < 0.90 && lastTriggeredScene.current !== 5) {
+        audio.playPaymentDing();
+        lastTriggeredScene.current = 5;
+      }
+      if (p < 0.88 || p >= 0.90) {
+        if (lastTriggeredScene.current === 5) {
+          lastTriggeredScene.current = null;
+        }
       }
     } catch (err) {
       console.warn("Audio trigger error:", err);
     }
   }, [smoothProgress]);
 
-  // Define some constant route coordinates across India outline
-  const indiaCities = [
-    { name: "Bengaluru", x: 490, y: 580, id: "bglr" },
-    { name: "Mumbai", x: 420, y: 480, id: "mumb" },
-    { name: "Delhi NCR", x: 470, y: 280, id: "delh" },
-    { name: "Hyderabad", x: 500, y: 500, id: "hydb" },
-    { name: "Pune", x: 430, y: 510, id: "pune" },
-    { name: "Kolkata", x: 620, y: 390, id: "kolk" },
-    { name: "Chennai", x: 520, y: 600, id: "chen" }
+  // Define some constant route coordinates across Bangalore Tech Corridors map
+  const blrLocations = [
+    { name: "Manyata Tech Park", x: 820, y: 350, id: "manyata" },
+    { name: "Bagmane Tech Park", x: 920, y: 520, id: "bagmane" },
+    { name: "ITPL", x: 1140, y: 510, id: "itpl" },
+    { name: "Whitefield", x: 1160, y: 590, id: "whitefield" },
+    { name: "Marathahalli", x: 1080, y: 680, id: "marathahalli" },
+    { name: "Outer Ring Road", x: 970, y: 720, id: "orr" },
+    { name: "Bellandur", x: 1000, y: 780, id: "bellandur" },
+    { name: "RMZ Ecospace", x: 1020, y: 840, id: "ecospace" },
+    { name: "Embassy TechVillage", x: 1060, y: 900, id: "etv" },
+    { name: "Electronic City", x: 920, y: 1030, id: "ecity" },
+    { name: "Global Village Tech Park", x: 620, y: 860, id: "globalvillage" }
   ];
 
-  // Map route lines connecting cities
-  const routeLines = [
-    { from: "delh", to: "mumb" },
-    { from: "mumb", to: "pune" },
-    { from: "pune", to: "bglr" },
-    { from: "bglr", to: "chen" },
-    { from: "hydb", to: "bglr" },
-    { from: "kolk", to: "hydb" },
-    { from: "delh", to: "kolk" }
+  // Map route lines connecting tech corridors in Bangalore
+  const blrRoutes = [
+    { from: "manyata", to: "bagmane" },
+    { from: "bagmane", to: "orr" },
+    { from: "orr", to: "bellandur" },
+    { from: "bellandur", to: "ecospace" },
+    { from: "ecospace", to: "etv" },
+    { from: "etv", to: "ecity" },
+    { from: "orr", to: "globalvillage" },
+    { from: "globalvillage", to: "ecity" },
+    { from: "bagmane", to: "marathahalli" },
+    { from: "marathahalli", to: "whitefield" },
+    { from: "whitefield", to: "itpl" },
+    { from: "marathahalli", to: "bellandur" }
   ];
 
   // Floating ambient wind/sparkles particles
@@ -314,10 +317,10 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
         {/* ==========================================
             SCENE 0 & 6: OUTLINE MAP OF INDIA & NETWORKS
             ========================================== */}
-        <g id="india-network-scene" opacity={smoothProgress < 0.15 || smoothProgress > 0.90 ? 1 : 0.05} style={{ transition: "opacity 0.6s" }}>
-          {/* Stylized geometric vector path of India coastline map */}
+        <g id="blr-network-scene" opacity={smoothProgress < 0.15 || smoothProgress > 0.90 ? 1 : 0.05} style={{ transition: "opacity 0.6s" }}>
+          {/* Stylized geometric background network of Bangalore tech highway arteries */}
           <path 
-            d="M 450,150 L 510,160 L 520,200 L 560,210 L 560,260 L 590,280 L 610,260 L 630,310 L 650,330 L 690,320 L 710,340 L 730,390 L 670,410 L 630,420 L 620,450 L 580,480 L 590,540 L 560,620 L 530,690 L 520,700 L 515,670 L 490,590 L 470,570 L 440,540 L 415,500 L 390,460 L 370,420 L 360,370 L 380,320 L 400,280 L 420,260 L 430,220 Z" 
+            d="M 620,860 L 920,1030 L 1060,900 L 1020,840 L 1000,780 L 970,720 L 1080,680 L 1160,590 L 1140,510 L 920,520 L 820,350 Z" 
             fill="none" 
             stroke="#2a2e34" 
             strokeWidth="3" 
@@ -325,11 +328,18 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             strokeDasharray={smoothProgress < 0.03 ? "1000" : "none"}
             style={{ transition: "stroke-dashoffset 2s ease-out" }}
           />
+          <path 
+            d="M 820,350 L 970,720 M 920,520 L 1140,510 L 1080,680 M 1080,680 L 1000,780 M 620,860 L 1020,840" 
+            fill="none" 
+            stroke="#2a2e34" 
+            strokeWidth="1" 
+            opacity="0.3" 
+          />
 
-          {/* Dynamic route lines between city nodes */}
-          {routeLines.map((line, idx) => {
-            const start = indiaCities.find(c => c.id === line.from);
-            const end = indiaCities.find(c => c.id === line.to);
+          {/* Dynamic route lines between Bangalore tech park nodes */}
+          {blrRoutes.map((line, idx) => {
+            const start = blrLocations.find(c => c.id === line.from);
+            const end = blrLocations.find(c => c.id === line.to);
             if (!start || !end) return null;
             return (
               <g key={`route-${idx}`}>
@@ -359,22 +369,22 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             );
           })}
 
-          {/* Glowing City Nodes */}
-          {indiaCities.map((city) => (
-            <g key={`city-${city.id}`} transform={`translate(${city.x}, ${city.y})`}>
+          {/* Glowing Bangalore Tech Park Nodes */}
+          {blrLocations.map((loc) => (
+            <g key={`loc-${loc.id}`} transform={`translate(${loc.x}, ${loc.y})`}>
               <circle r="12" fill="#ffb300" opacity="0.12" className="animate-ping" />
               <circle r="6" fill="#ffb300" filter="url(#glow-yellow)" />
               <circle r="3" fill="#2a2e34" />
               
-              {/* City names labeled elegantly in display font */}
+              {/* Location names labeled elegantly in display font */}
               <text 
                 y="-12" 
                 textAnchor="middle" 
                 fill="#2a2e34" 
-                className="font-mono text-[9px] font-bold"
+                className="font-mono text-[9px] font-black"
                 letterSpacing="1"
               >
-                {city.name.toUpperCase()}
+                {loc.name.toUpperCase()}
               </text>
             </g>
           ))}
@@ -409,24 +419,28 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
           <rect x="300" y="140" width="40" height="60" fill="none" stroke="#2a2e34" strokeWidth="2" rx="4" />
           <line x1="300" y1="165" x2="340" y2="165" stroke="#2a2e34" strokeWidth="1" />
           
-          {/* Vibrating Alarm Clock */}
+          {/* Vibrating Alarm Phone */}
           <g 
-            transform={`translate(320, 130) ${smoothProgress > 0.12 && smoothProgress < 0.28 ? `translate(${Math.sin(Date.now() * 0.15) * 2.5}, ${Math.cos(Date.now() * 0.15) * 1.5})` : ""}`}
+            transform={`translate(320, 125) ${smoothProgress >= 0.12 && smoothProgress < 0.16 ? `translate(${Math.sin(Date.now() * 0.15) * 2.5}, ${Math.cos(Date.now() * 0.15) * 1.5})` : ""}`}
             style={{ transformOrigin: "center" }}
           >
-            <circle r="10" fill="#e9eaec" stroke="#2a2e34" strokeWidth="1.5" />
-            <path d="M -8,-8 L -4,-12 M 8,-8 L 4,-12" stroke="#2a2e34" strokeWidth="2" strokeLinecap="round" /> {/* bells */}
-            <circle cx="-6" cy="-10" r="2.5" fill="#2a2e34" />
-            <circle cx="6" cy="-10" r="2.5" fill="#2a2e34" />
+            {/* Phone body */}
+            <rect x="-8" y="-15" width="16" height="30" rx="3" fill="#e9eaec" stroke="#2a2e34" strokeWidth="1.5" />
             
-            {/* Clock hands showing 08:10 */}
-            <line x1="0" y1="0" x2="0" y2="-6" stroke="#2a2e34" strokeWidth="1.5" />
-            <line x1="0" y1="0" x2="5" y2="2" stroke="#ffb300" strokeWidth="1.5" />
-            {/* Pulsing alarm soundwaves */}
-            {smoothProgress > 0.12 && smoothProgress < 0.28 && (
-              <g opacity="0.75" stroke="#ffb300" strokeWidth="1" fill="none">
-                <path d="M -15,-5 Q -20,0 -15,5" />
-                <path d="M 15,-5 Q 20,0 15,5" />
+            {/* Phone screen */}
+            <rect x="-6" y="-13" width="12" height="26" rx="1.5" fill={smoothProgress >= 0.12 && smoothProgress < 0.16 ? "#ffb300" : "#2a2e34"} opacity={smoothProgress >= 0.12 && smoothProgress < 0.16 ? "0.9" : "0.15"} />
+            
+            {/* Details */}
+            <line x1="-2" y1="-14" x2="2" y2="-14" stroke="#2a2e34" strokeWidth="1" />
+            <circle cx="0" cy="14" r="1" fill="#2a2e34" />
+
+            {/* Pulsing alarm soundwaves directly around the phone body */}
+            {smoothProgress >= 0.12 && smoothProgress < 0.16 && (
+              <g opacity="0.85" stroke="#ffb300" strokeWidth="1.2" fill="none">
+                <path d="M -13,-6 Q -18,0 -13,6" />
+                <path d="M -17,-11 Q -24,0 -17,11" />
+                <path d="M 13,-6 Q 18,0 13,6" />
+                <path d="M 17,-11 Q 24,0 17,11" />
               </g>
             )}
           </g>
@@ -441,58 +455,87 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             {/* Pillow */}
             <rect x="15" y="15" width="25" height="15" fill="#d8dadf" stroke="#2a2e34" strokeWidth="1.5" rx="2" />
 
-            {/* Sleeping Aman figures (reacts to scroll progress to wake up) */}
-            {smoothProgress < 0.22 ? (
-              // Sleeping position
-              <g id="sleeping-figure">
+            {/* Waking sequence based on progress stages */}
+            {smoothProgress < 0.16 ? (
+              // Stage 1 & 2: Sleeping & Alarm Rings (0.00 - 0.16)
+              <g id="figure-sleeping">
                 <circle cx="27" cy="12" r="8" fill="#e9eaec" stroke="#2a2e34" strokeWidth="2" />
-                <path d="M 35,28 L 130,28" stroke="#2a2e34" strokeWidth="5" strokeLinecap="round" /> {/* body under blanket */}
-                <path d="M 25,28 Q 75,22 135,28" fill="#2a2e34" opacity="0.15" /> {/* blanket shadows */}
-                <text x="35" y="-5" className="font-mono text-[10px] font-bold fill-[#2a2e34]/50 animate-pulse">Zzz...</text>
+                <path d="M 35,28 L 130,28" stroke="#2a2e34" strokeWidth="5" strokeLinecap="round" /> {/* blanket */}
+                <path d="M 25,28 Q 75,22 135,28" fill="#2a2e34" opacity="0.15" />
+                {smoothProgress >= 0.12 && (
+                  <text x="35" y="-5" className="font-mono text-[10px] font-black fill-[#ffb300] animate-pulse">!? Zzz... !?</text>
+                )}
               </g>
-            ) : (
-              // Awaken / Anxious sitting position
-              <g id="awoken-figure" className="transition-all duration-500">
+            ) : smoothProgress < 0.20 ? (
+              // Stage 3: Reaching to turn off alarm (0.16 - 0.20)
+              <g id="figure-reaching">
+                {/* Slightly raised head */}
+                <circle cx="32" cy="8" r="8" fill="#e9eaec" stroke="#2a2e34" strokeWidth="2" />
+                <path d="M 38,28 L 130,28" stroke="#2a2e34" strokeWidth="5" strokeLinecap="round" /> {/* blanket */}
+                {/* Arm reaching far right towards the alarm clock table */}
+                <path d="M 38,18 Q 90,10 145,0" fill="none" stroke="#2a2e34" strokeWidth="2" strokeLinecap="round" />
+                <text x="50" y="-10" className="font-mono text-[8px] font-bold fill-[#2a2e34]/70">Waking up...</text>
+              </g>
+            ) : smoothProgress < 0.24 ? (
+              // Stage 4: Sits up (0.20 - 0.24)
+              <g id="figure-sitting">
                 <circle cx="45" cy="-2" r="8" fill="#e9eaec" stroke="#2a2e34" strokeWidth="2" />
                 {/* Sitting up torso */}
                 <path d="M 45,6 L 45,30 L 130,30" stroke="#2a2e34" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M 45,15 L 75,20" stroke="#2a2e34" strokeWidth="2" /> {/* arm stretching */}
-                {/* Sigh breath ripple */}
-                <circle cx="58" cy="-2" r="3" fill="none" stroke="#2a2e34" opacity="0.25" strokeWidth="0.5" />
+                <path d="M 45,15 Q 60,20 70,25" fill="none" stroke="#2a2e34" strokeWidth="2" strokeLinecap="round" /> {/* arm resting */}
+                <text x="60" y="-12" className="font-mono text-[8px] font-bold fill-[#2a2e34]/70">Yawn...</text>
+              </g>
+            ) : (
+              // Stage 5: Sits up, picks up phone and looks at commute options (0.24 - 0.35)
+              <g id="figure-checking-phone">
+                <circle cx="45" cy="-2" r="8" fill="#e9eaec" stroke="#2a2e34" strokeWidth="2" />
+                {/* Sitting up torso */}
+                <path d="M 45,6 L 45,30 L 130,30" stroke="#2a2e34" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                
+                {/* Arm holding a tiny glowing phone */}
+                <path d="M 45,15 L 68,10" fill="none" stroke="#2a2e34" strokeWidth="2" strokeLinecap="round" />
+                {/* Glowing phone rect */}
+                <rect x="68" y="2" width="6" height="12" rx="1" fill="#ffb300" stroke="#2a2e34" strokeWidth="1" />
+                {/* Tiny light beam */}
+                <polygon points="74,5 110,-5 110,20 74,11" fill="#ffb300" opacity="0.15" />
+                
+                <text x="58" y="-12" className="font-mono text-[8px] font-black fill-[#ffb300] tracking-tight">OPTIONS?</text>
               </g>
             )}
           </g>
 
-          {/* Floating glowing Phone Surges panel */}
+          {/* Floating glowing Phone Surges panel - visible at 14% scroll progress */}
           <g 
-            transform="translate(190, 45)" 
-            opacity={smoothProgress > 0.14 && smoothProgress < 0.32 ? 1 : 0}
+            transform="translate(390, 95)" 
+            opacity={smoothProgress >= 0.12 && smoothProgress < 0.32 ? 1 : 0}
             style={{ transition: "opacity 0.4s ease-out" }}
           >
-            {/* Glassmorphic card frame */}
-            <rect width="130" height="90" fill="#e9eaec" fillOpacity="0.92" stroke="#2a2e34" strokeWidth="2" rx="12" filter="url(#shadow)" />
-            <rect width="130" height="18" fill="#2a2e34" rx="12" />
-            <text x="65" y="12" textAnchor="middle" fill="#e9eaec" className="font-mono text-[7px] font-black tracking-wider">08:12 AM • OUTBOX</text>
-
-            {/* Uber / Ola pricing rows */}
-            <g transform="translate(10, 28)">
-              {/* Row 1: Cab Fare */}
-              <text y="8" fill="#2a2e34" className="font-sans text-[8px] font-bold">Cab Fare</text>
-              <text x="110" y="8" textAnchor="end" fill="#ffb300" className="font-mono text-[8px] font-black" filter="url(#glow-yellow)">₹520</text>
-              <line x1="0" y1="12" x2="110" y2="12" stroke="#2a2e34" strokeWidth="0.5" opacity="0.1" />
-
-              {/* Row 2: Ride Status */}
-              <text y="24" fill="#2a2e34" className="font-sans text-[8px] font-bold">Ride Status</text>
-              <text x="110" y="24" textAnchor="end" fill="#ff4444" className="font-mono text-[8px] font-bold">Cancelled</text>
-              <line x1="0" y1="28" x2="110" y2="28" stroke="#2a2e34" strokeWidth="0.5" opacity="0.1" />
-
-              {/* Row 3: Bike Available */}
-              <text y="40" fill="#2a2e34" className="font-sans text-[8px] font-bold">Bike Available</text>
-              <text x="110" y="40" textAnchor="end" fill="#ff4444" className="font-mono text-[8px] font-bold">None</text>
-            </g>
+            {/* Glassmorphic card frame - widened to 170 to fully prevent clipping and overlapping */}
+            <rect width="170" height="100" fill="#e9eaec" fillOpacity="0.95" stroke="#2a2e34" strokeWidth="2" rx="12" filter="url(#shadow)" />
+            
+            {/* Header with clean top-rounded path */}
+            <path d="M 1,11 A 10,10 0 0,1 11,1 L 159,1 A 10,10 0 0,1 169,11 L 169,22 L 1,22 Z" fill="#ff4444" />
+            <text x="85" y="14" textAnchor="middle" fill="#e9eaec" className="font-mono text-[7.5px] font-black tracking-wider">08:12 AM • SURGE WARNING</text>
 
             {/* Red phone notification indicator */}
-            <circle cx="118" cy="9" r="3" fill="#ff4444" />
+            <circle cx="158" cy="11" r="3" fill="#ffffff" />
+
+            {/* Pricing rows in an elegant, non-overlapping 2-column layout */}
+            <g transform="translate(12, 0)">
+              {/* Row 1: Cab Fare */}
+              <text y="38" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">Cab Fare</text>
+              <text x="146" y="38" textAnchor="end" fill="#ff4444" className="font-mono text-[9.5px] font-black tracking-wide" filter="url(#glow-yellow)">₹520 ⚠️</text>
+              <line x1="0" y1="46" x2="146" y2="46" stroke="#2a2e34" strokeWidth="0.75" opacity="0.1" />
+
+              {/* Row 2: Ride Status */}
+              <text y="58" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">Ride Status</text>
+              <text x="146" y="58" textAnchor="end" fill="#ff4444" className="font-mono text-[8px] font-black uppercase tracking-wide">Cancelled</text>
+              <line x1="0" y1="66" x2="146" y2="66" stroke="#2a2e34" strokeWidth="0.75" opacity="0.1" />
+
+              {/* Row 3: Bike Status */}
+              <text y="78" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">Bike Status</text>
+              <text x="146" y="78" textAnchor="end" fill="#ff4444" className="font-mono text-[8px] font-black uppercase tracking-wide">High Demand</text>
+            </g>
           </g>
         </g>
 
@@ -907,7 +950,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
 
           {/* Integrated real-time product feature HUD floating tags */}
           <g 
-            transform="translate(340, 20)"
+            transform="translate(320, 110)"
             opacity={smoothProgress > 0.72 && smoothProgress < 0.90 ? 1 : 0}
             style={{ transition: "opacity 0.4s" }}
           >
@@ -999,27 +1042,33 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             <line x1="15" y1="35" x2="0" y2="20" stroke="#2a2e34" strokeWidth="2" strokeLinecap="round" /> {/* waving hand */}
           </g>
 
-          {/* Floating wallet payout details */}
+          {/* Floating wallet payout details - enlarged and positioned perfectly to prevent overlaps and clipping */}
           <g 
-            transform="translate(280, 50)"
+            transform="translate(210, 115)"
             opacity={smoothProgress > 0.88 && smoothProgress < 0.95 ? 1 : 0}
             style={{ transition: "opacity 0.4s" }}
           >
-            {/* Wallet glassmorphic outline */}
-            <rect width="130" height="75" fill="#e9eaec" fillOpacity="0.95" stroke="#2a2e34" strokeWidth="2" rx="12" filter="url(#shadow)" />
-            <rect width="130" height="18" fill="#ffb300" rx="12" />
-            <text x="65" y="12" textAnchor="middle" fill="#2a2e34" className="font-mono text-[7px] font-black tracking-wider">COMMUTING PAYOUT</text>
+            {/* Wallet glassmorphic outline - expanded width and height */}
+            <rect width="170" height="100" fill="#e9eaec" fillOpacity="0.95" stroke="#2a2e34" strokeWidth="2" rx="12" filter="url(#shadow)" />
+            
+            {/* Header with clean top-rounded path */}
+            <path d="M 1,11 A 10,10 0 0,1 11,1 L 159,1 A 10,10 0 0,1 169,11 L 169,22 L 1,22 Z" fill="#ffb300" />
+            <text x="85" y="14" textAnchor="middle" fill="#2a2e34" className="font-mono text-[8px] font-black tracking-wider">COMMUTING PAYOUT</text>
 
-            <g transform="translate(12, 28)">
-              <text y="10" fill="#2a2e34" className="font-sans text-[8px] font-bold">Aman (Saved 75%)</text>
-              <text x="105" y="10" textAnchor="end" fill="#2a2e34" className="font-mono text-[8px] font-black">₹340 SAVED</text>
-              <line x1="0" y1="16" x2="105" y2="16" stroke="#2a2e34" strokeWidth="0.5" opacity="0.1" />
+            <g transform="translate(12, 0)">
+              {/* Row 1 */}
+              <text y="38" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">Aman (Saved 40%)</text>
+              <text x="146" y="38" textAnchor="end" fill="#2a2e34" className="font-mono text-[8.5px] font-black">₹340 SAVED</text>
+              <line x1="0" y1="46" x2="146" y2="46" stroke="#2a2e34" strokeWidth="0.75" opacity="0.1" />
 
-              <text y="28" fill="#2a2e34" className="font-sans text-[8px] font-bold">Rohit (Fuel Covered)</text>
-              <text x="105" y="28" textAnchor="end" fill="#ffb300" className="font-mono text-[8px] font-black" filter="url(#glow-yellow)">₹180 EARNED</text>
-              <line x1="0" y1="34" x2="105" y2="34" stroke="#2a2e34" strokeWidth="0.5" opacity="0.1" />
+              {/* Row 2 */}
+              <text y="58" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">Rohit (Fuel Covered)</text>
+              <text x="146" y="58" textAnchor="end" fill="#ffb300" className="font-mono text-[8.5px] font-black" filter="url(#glow-yellow)">₹180 EARNED</text>
+              <line x1="0" y1="66" x2="146" y2="66" stroke="#2a2e34" strokeWidth="0.75" opacity="0.1" />
               
-              <text y="44" fill="#2a2e34" opacity="0.5" className="font-sans text-[7px]">Auto-split matching completed</text>
+              {/* Row 3 */}
+              <text y="82" fill="#2a2e34" opacity="0.6" className="font-sans text-[7.5px] font-extrabold uppercase tracking-wide">Split Completed</text>
+              <text x="146" y="82" textAnchor="end" fill="#2a2e34" className="font-mono text-[8px] font-black fill-green-600">✓ SUCCESS</text>
             </g>
           </g>
         </g>
