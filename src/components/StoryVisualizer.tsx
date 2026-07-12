@@ -52,6 +52,14 @@ const keyframes: CameraKeyframe[] = [
 export default function StoryVisualizer({ progress, activeSceneOverride }: StoryVisualizerProps) {
   const [smoothProgress, setSmoothProgress] = useState(0);
   const lastTriggeredScene = useRef<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Buttery-smooth inertial scroll interpolation (120FPS glide feeling)
   useEffect(() => {
@@ -90,10 +98,29 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
     // Smooth easing interpolation for camera movement
     const t = factor * factor * (3 - 2 * factor); // smoothstep
     
-    const x = left.x + (right.x - left.x) * t;
-    const y = left.y + (right.y - left.y) * t;
-    const w = left.w + (right.w - left.w) * t;
-    const h = left.h + (right.h - left.h) * t;
+    let x = left.x + (right.x - left.x) * t;
+    let y = left.y + (right.y - left.y) * t;
+    let w = left.w + (right.w - left.w) * t;
+    let h = left.h + (right.h - left.h) * t;
+    
+    if (isMobile) {
+      const isFocusedScene = p >= 0.05 && p <= 0.95;
+      const zoom = isFocusedScene ? 0.62 : 0.82; // Zoom in closer on mobile
+      
+      const origW = w;
+      const origH = h;
+      
+      w = origW * zoom;
+      h = origH * zoom * 1.35; // Aspect ratio is vertical to fit mobile screens beautifully
+      
+      const centerX = x + origW / 2;
+      const centerY = y + origH / 2;
+      
+      x = centerX - w / 2;
+      // Shift camera downwards (add to y) so drawings rise up visually below top compact navbar
+      const mobileYOffset = isFocusedScene ? h * 0.18 : 0;
+      y = (centerY - h / 2) + mobileYOffset;
+    }
     
     return `${x} ${y} ${w} ${h}`;
   };
@@ -264,7 +291,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
         </defs>
 
         {/* Ambient background grids */}
-        <g opacity="0.15">
+        <g opacity={isMobile ? "0.07" : "0.15"}>
           <path d="M 0,0 L 2000,0 M 0,200 L 2000,200 M 0,400 L 2000,400 M 0,600 L 2000,600 M 0,800 L 2000,800 M 0,1000 L 2000,1000 M 0,1200 L 2000,1200 M 0,1400 L 2000,1400" stroke="#2a2e34" strokeWidth="0.5" strokeDasharray="5,5" />
           <path d="M 0,0 L 0,1600 M 200,0 L 200,1600 M 400,0 L 400,1600 M 600,0 L 600,1600 M 800,0 L 800,1600 M 1000,0 L 1000,1600 M 1200,0 L 1200,1600 M 1400,0 L 1400,1600 M 1600,0 L 1600,1600 M 1800,0 L 1800,1600" stroke="#2a2e34" strokeWidth="0.5" strokeDasharray="5,5" />
         </g>
@@ -272,7 +299,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
         {/* ==========================================
             STAGE BACKGROUND SKYLINE (Charcoal silhouettes)
             ========================================== */}
-        <g id="city-skyline" opacity="0.25">
+        <g id="city-skyline" opacity={isMobile ? "0.05" : "0.25"}>
           {/* Distant building lines */}
           <rect x="100" y="240" width="80" height="200" fill="#2a2e34" rx="4" />
           <rect x="230" y="190" width="120" height="250" fill="#2a2e34" rx="6" />
@@ -323,7 +350,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             d="M 620,860 L 920,1030 L 1060,900 L 1020,840 L 1000,780 L 970,720 L 1080,680 L 1160,590 L 1140,510 L 920,520 L 820,350 Z" 
             fill="none" 
             stroke="#2a2e34" 
-            strokeWidth="3" 
+            strokeWidth={isMobile ? "5.5" : "3"} 
             strokeLinejoin="round" 
             strokeDasharray={smoothProgress < 0.03 ? "1000" : "none"}
             style={{ transition: "stroke-dashoffset 2s ease-out" }}
@@ -332,7 +359,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             d="M 820,350 L 970,720 M 920,520 L 1140,510 L 1080,680 M 1080,680 L 1000,780 M 620,860 L 1020,840" 
             fill="none" 
             stroke="#2a2e34" 
-            strokeWidth="1" 
+            strokeWidth={isMobile ? "2" : "1"} 
             opacity="0.3" 
           />
 
@@ -347,14 +374,14 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
                 <line 
                   x1={start.x} y1={start.y} x2={end.x} y2={end.y} 
                   stroke="#2a2e34" 
-                  strokeWidth="1.5" 
+                  strokeWidth={isMobile ? "2.5" : "1.5"} 
                   opacity="0.2" 
                 />
                 {/* Active glowing yellow route line overlay */}
                 <line 
                   x1={start.x} y1={start.y} x2={end.x} y2={end.y} 
                   stroke="#ffb300" 
-                  strokeWidth="3.5" 
+                  strokeWidth={isMobile ? "5.5" : "3.5"} 
                   strokeLinecap="round"
                   filter="url(#glow-yellow)"
                   strokeDasharray="12,12"
@@ -370,24 +397,33 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
           })}
 
           {/* Glowing Bangalore Tech Park Nodes */}
-          {blrLocations.map((loc) => (
-            <g key={`loc-${loc.id}`} transform={`translate(${loc.x}, ${loc.y})`}>
-              <circle r="12" fill="#ffb300" opacity="0.12" className="animate-ping" />
-              <circle r="6" fill="#ffb300" filter="url(#glow-yellow)" />
-              <circle r="3" fill="#2a2e34" />
-              
-              {/* Location names labeled elegantly in display font */}
-              <text 
-                y="-12" 
-                textAnchor="middle" 
-                fill="#2a2e34" 
-                className="font-mono text-[9px] font-black"
-                letterSpacing="1"
-              >
-                {loc.name.toUpperCase()}
-              </text>
-            </g>
-          ))}
+          {blrLocations
+            .filter((loc) => {
+              // Hide non-essential nodes on mobile to simplify density and ensure clear readability
+              if (isMobile) {
+                return ["manyata", "etv", "ecity", "whitefield", "itpl"].includes(loc.id);
+              }
+              return true;
+            })
+            .map((loc) => (
+              <g key={`loc-${loc.id}`} transform={`translate(${loc.x}, ${loc.y})`}>
+                <circle r={isMobile ? "16" : "12"} fill="#ffb300" opacity="0.12" className="animate-ping" />
+                <circle r={isMobile ? "8" : "6"} fill="#ffb300" filter="url(#glow-yellow)" />
+                <circle r={isMobile ? "4" : "3"} fill="#2a2e34" />
+                
+                {/* Location names labeled elegantly in display font - larger and highly readable on mobile */}
+                <text 
+                  y={isMobile ? "-16" : "-12"} 
+                  textAnchor="middle" 
+                  fill="#2a2e34" 
+                  className="font-mono text-[13px] sm:text-[9px] font-black"
+                  letterSpacing={isMobile ? "0.5" : "1"}
+                  style={{ textShadow: "0px 1px 2px rgba(233, 234, 236, 0.95)" }}
+                >
+                  {loc.name.toUpperCase()}
+                </text>
+              </g>
+            ))}
         </g>
 
 
@@ -503,6 +539,17 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
               </g>
             )}
           </g>
+
+          {/* Subtle curved leader line connecting phone on table to floating surge HUD */}
+          <path
+            d="M 320,125 Q 355,110 390,130"
+            fill="none"
+            stroke="#ff4444"
+            strokeWidth={isMobile ? "2" : "1.5"}
+            strokeDasharray="4,4"
+            opacity={smoothProgress >= 0.12 && smoothProgress < 0.32 ? 0.65 : 0}
+            style={{ transition: "opacity 0.4s ease-out" }}
+          />
 
           {/* Floating glowing Phone Surges panel - visible at 14% scroll progress */}
           <g 
@@ -829,12 +876,12 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
         <g id="highway-ride" transform="translate(500, 1050)">
           {/* Parallax scrolling highway lines */}
           <rect x="0" y="100" width="800" height="180" fill="#2a2e34" fillOpacity="0.05" />
-          <line x1="0" y1="190" x2="800" y2="190" stroke="#2a2e34" strokeWidth="4" />
-          <line x1="0" y1="280" x2="800" y2="280" stroke="#2a2e34" strokeWidth="2.5" />
-          <line x1="0" y1="100" x2="800" y2="100" stroke="#2a2e34" strokeWidth="2.5" />
+          <line x1="0" y1="190" x2="800" y2="190" stroke="#2a2e34" strokeWidth={isMobile ? "6.5" : "4"} />
+          <line x1="0" y1="280" x2="800" y2="280" stroke="#2a2e34" strokeWidth={isMobile ? "4.5" : "2.5"} />
+          <line x1="0" y1="100" x2="800" y2="100" stroke="#2a2e34" strokeWidth={isMobile ? "4.5" : "2.5"} />
 
           {/* Moving road dash segments based on progress for infinite scrolling feeling */}
-          <g stroke="#ffb300" strokeWidth="3" strokeDasharray="30,25" strokeDashoffset={smoothProgress * -1200}>
+          <g stroke="#ffb300" strokeWidth={isMobile ? "5.5" : "3"} strokeDasharray="30,25" strokeDashoffset={smoothProgress * -1200}>
             <line x1="0" y1="145" x2="800" y2="145" />
             <line x1="0" y1="235" x2="800" y2="235" />
           </g>
