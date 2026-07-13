@@ -532,32 +532,12 @@ export default function FinalCinematic({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6 bg-[#e9eaec] overflow-y-auto"
+              className="absolute inset-0 flex flex-col items-center justify-start p-4 sm:p-6 bg-[#e9eaec] overflow-y-auto pt-20 sm:pt-28 md:pt-36 pb-12"
             >
-              <div className="w-full max-w-3xl text-center flex flex-col items-center justify-center space-y-4 sm:space-y-6 py-2 sm:py-7 md:py-12 relative">
+              <div className="w-full max-w-3xl text-center flex flex-col items-center justify-start space-y-3 sm:space-y-4 py-2 sm:py-4 md:py-6 relative">
                 
                 {/* 1. Centered MoveBuddy Logo assembling & breathing */}
                 <div className="relative w-full max-w-xs h-16 sm:h-28 flex items-center justify-center mb-0.5 sm:mb-1">
-                  {/* Subtle route network background lines behind the logo */}
-                  <svg viewBox="0 0 200 100" className="absolute inset-0 w-full h-full opacity-30 pointer-events-none">
-                    <defs>
-                      <filter id="logo-glow-subtle" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                    </defs>
-                    {/* Glowing golden routes */}
-                    <path d="M 20,50 Q 100,20 180,50" stroke="#ffb300" strokeWidth="1.5" fill="none" strokeDasharray="3,3" />
-                    <path d="M 50,80 Q 100,20 150,80" stroke="#2a2e34" strokeWidth="1" fill="none" opacity="0.3" />
-                    
-                    {/* Moving glowing particles */}
-                    <circle cx="0" cy="0" r="2.2" fill="#ffb300" filter="url(#logo-glow-subtle)">
-                      <animateMotion path="M 20,50 Q 100,20 180,50" dur="4s" repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="0" cy="0" r="1.5" fill="#2a2e34">
-                      <animateMotion path="M 50,80 Q 100,20 150,80" dur="6s" repeatCount="indefinite" />
-                    </circle>
-                  </svg>
                   
                   {/* Breathing and assembling logo */}
                   <motion.div
@@ -616,7 +596,7 @@ export default function FinalCinematic({
                   initial={{ y: 35, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                  className="w-full max-w-md bg-[#121518] border border-white/15 p-4 sm:p-7 rounded-2xl sm:rounded-3xl shadow-2xl space-y-3 sm:space-y-3.5 text-left text-white relative overflow-hidden"
+                  className="w-full max-w-md bg-[#121518] border border-white/15 p-3.5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-2xl space-y-2.5 sm:space-y-3.5 text-left text-white relative overflow-hidden"
                 >
                   {/* Subtle card background grid */}
                   <div className="absolute inset-0 bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:12px_12px] opacity-40 pointer-events-none" />
@@ -743,7 +723,7 @@ export default function FinalCinematic({
 
                     {/* Phone feedback card - directly clickable with tel */}
                     <a 
-                      href="tel:+918249089921"
+                      href="tel:+916371591539"
                       className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between h-24 text-left group"
                     >
                       <div className="flex justify-between items-start mb-2">
@@ -755,7 +735,7 @@ export default function FinalCinematic({
                       <div>
                         <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Call Us</h4>
                         <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50 leading-none block">
-                          +91 82490 89921
+                          +91 63715 91539
                         </span>
                       </div>
                     </a>
@@ -789,7 +769,7 @@ export default function FinalCinematic({
 
                     {/* Call Link */}
                     <a 
-                      href="tel:+918249089921"
+                      href="tel:+916371591539"
                       title="Call Us"
                       className="w-12 h-12 bg-white border border-[#2a2e34]/10 rounded-2xl flex items-center justify-center shadow-sm hover:border-[#ffb300] active:scale-95 transition-all"
                     >
@@ -807,20 +787,20 @@ export default function FinalCinematic({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 1 }}
-                  className="w-full max-w-md pt-4 sm:pt-8 flex flex-col items-center justify-center space-y-2 sm:space-y-4 border-t border-[#2a2e34]/10 mt-3 sm:mt-6"
+                  className="w-full max-w-md pt-2.5 sm:pt-4 flex flex-col items-center justify-center space-y-1 sm:space-y-2 border-t border-[#2a2e34]/10 mt-1.5 sm:mt-2.5"
                 >
                   <span className="font-display font-black text-sm text-[#2a2e34] tracking-wider uppercase">MOVEBUDDY</span>
                   
                   {/* Thin glowing yellow route line and tiny bike */}
-                  <div className="w-full max-w-[260px] h-10 relative flex items-center justify-center">
-                    <div className="absolute inset-x-0 bottom-4 h-[1.5px] bg-[#2a2e34]/10 rounded-full" />
+                  <div className="w-full max-w-[260px] h-5 relative flex items-center justify-center">
+                    <div className="absolute inset-x-0 bottom-2 h-[1.5px] bg-[#2a2e34]/10 rounded-full" />
                     
                     {/* Glowing active yellow road drawn from left-to-right */}
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: "100%" }}
                       transition={{ duration: 3.2, delay: 1.2, ease: "linear" }}
-                      className="absolute left-0 bottom-4 h-[2px] bg-[#ffb300] shadow-[0_0_8px_#ffb300]"
+                      className="absolute left-0 bottom-2 h-[2px] bg-[#ffb300] shadow-[0_0_8px_#ffb300]"
                     />
 
                     {/* Tiny motorcycle riding across from left-to-right */}
@@ -828,7 +808,7 @@ export default function FinalCinematic({
                       initial={{ left: 0 }}
                       animate={{ left: "calc(100% - 16px)" }}
                       transition={{ duration: 3.2, delay: 1.2, ease: "linear" }}
-                      className="absolute bottom-4 mb-[-3px] z-10"
+                      className="absolute bottom-2 mb-[-3px] z-10"
                     >
                       <svg viewBox="0 0 16 10" className="w-4 h-2.5">
                         <circle cx="2" cy="7" r="1.5" fill="#2a2e34" />
@@ -840,7 +820,7 @@ export default function FinalCinematic({
                   </div>
 
                   {/* Words "See You On The Road" morphing from the animation */}
-                  <div className="h-6 flex items-center justify-center">
+                  <div className="h-4 flex items-center justify-center">
                     <AnimatePresence mode="wait">
                       {tinyBikeFinished ? (
                         <motion.span 
@@ -870,7 +850,7 @@ export default function FinalCinematic({
                 </motion.div>
 
                 {/* Direct Google Form link */}
-                <div className="pt-2 text-center">
+                <div className="pt-0 text-center">
                   <a 
                     href="https://forms.gle/yNu2wQKQiTUi5fn17"
                     target="_blank"
@@ -918,14 +898,14 @@ export default function FinalCinematic({
                               setTinyBikeFinished(true);
                             }, 3500);
                           }}
-                          className="px-5 py-2.5 rounded-full border border-white/20 hover:bg-white/10 text-white font-mono text-[9px] font-bold tracking-widest uppercase transition-all active:scale-95 cursor-pointer"
+                          className="px-5 py-2.5 rounded-full bg-[#ffb300] hover:bg-[#ffb300]/95 text-[#2a2e34] font-mono text-[9px] font-black tracking-widest uppercase transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
                         >
-                          Keep Exploring
+                          Go to Survey Form <ExternalLink className="w-3 h-3" />
                         </button>
 
                         <button 
                           onClick={handleRestart}
-                          className="px-5 py-2.5 rounded-full bg-[#ffb300] hover:bg-[#ffb300]/95 text-[#2a2e34] font-mono text-[9px] font-black tracking-widest uppercase transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                          className="px-5 py-2.5 rounded-full border border-white/20 hover:bg-white/10 text-white font-mono text-[9px] font-bold tracking-widest uppercase transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" /> Replay Story
                         </button>

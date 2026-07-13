@@ -122,10 +122,12 @@ export default function App() {
     setIsSubmitted(true);
     audio.playPaymentDing();
     
-    // Auto open survey in secondary tab to map coordinates
-    setTimeout(() => {
+    // Direct synchronous open to prevent browser popup blockers from blocking the redirect
+    try {
       window.open("https://forms.gle/yNu2wQKQiTUi5fn17", "_blank");
-    }, 1200);
+    } catch (e) {
+      console.error("Popup window block caught: ", e);
+    }
   };
 
   // Skip directly to waitlist section
