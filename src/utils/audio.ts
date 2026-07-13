@@ -166,6 +166,45 @@ class MoveBuddyAudioEngine {
     }
   }
 
+  public playWakeUpChime() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      // Soft, warm ascending Major 9th arpeggio representing a peaceful, bright wake-up (F4, A4, C5, E5, G5)
+      const notes = [349.23, 440.00, 523.25, 659.25, 783.99]; 
+      
+      notes.forEach((freq, idx) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(1500, now);
+
+        // Soft, organic chime envelope
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.07 - (idx * 0.005), now + idx * 0.12 + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.12 + 1.2);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + idx * 0.12);
+        osc.stop(now + idx * 0.12 + 1.5);
+      });
+    } catch (e) {
+      console.error("Error playing wake-up chime:", e);
+    }
+  }
+
   public startEngine() {
     // Engine sound removed as per user requirements
   }

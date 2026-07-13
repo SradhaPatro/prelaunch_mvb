@@ -23,13 +23,14 @@ interface FinalCinematicProps {
   setEmail: (val: string) => void;
   phone: string;
   setPhone: (val: string) => void;
+  errorMsg?: string;
   isSubmitted: boolean;
   handleSubmitEmail: (e: React.FormEvent) => void;
   handleCopyEmail: () => void;
   copiedEmail: boolean;
 }
 
-type CinematicStage = "arrival" | "network_glow" | "logo_formation" | "manifesto" | "cta";
+type CinematicStage = "arrival" | "cta";
 
 export default function FinalCinematic({
   onReplay,
@@ -37,12 +38,21 @@ export default function FinalCinematic({
   setEmail,
   phone,
   setPhone,
+  errorMsg = "",
   isSubmitted,
   handleSubmitEmail,
   handleCopyEmail,
   copiedEmail
 }: FinalCinematicProps) {
   const [stage, setStage] = useState<CinematicStage>("arrival");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
   
   // Timed stats for Stage 1 (Arrival)
   const [visibleStats, setVisibleStats] = useState<number>(0);
@@ -57,42 +67,27 @@ export default function FinalCinematic({
   // Auto-play timer coordination
   useEffect(() => {
     let t1: any, t2: any, t3: any, t4: any, t5: any, t6: any, t7: any, t8: any;
+    
+    // Scale timeouts up on mobile to allow longer visual holding duration (40% longer)
+    const f = (ms: number) => Math.round(ms * (isMobile ? 1.4 : 1.0));
 
     if (stage === "arrival") {
       // Step through stats fade-ins during arrival
       setVisibleStats(0);
-      t1 = setTimeout(() => setVisibleStats(1), 1200);
-      t2 = setTimeout(() => setVisibleStats(2), 2400);
-      t3 = setTimeout(() => setVisibleStats(3), 3600);
-      t4 = setTimeout(() => setVisibleStats(4), 4800);
-      t5 = setTimeout(() => setVisibleStats(5), 6000);
-      t6 = setTimeout(() => setVisibleStats(6), 7200);
+      t1 = setTimeout(() => setVisibleStats(1), f(1200));
+      t2 = setTimeout(() => setVisibleStats(2), f(2400));
+      t3 = setTimeout(() => setVisibleStats(3), f(3600));
+      t4 = setTimeout(() => setVisibleStats(4), f(4800));
+      t5 = setTimeout(() => setVisibleStats(5), f(6000));
+      t6 = setTimeout(() => setVisibleStats(6), f(7200));
 
-      // Transition to network_glow after 10 seconds of breathing room
+      // Transition directly to cta after 10.5 seconds (desktop) or 14.7 seconds (mobile)
       t7 = setTimeout(() => {
-        setStage("network_glow");
+        setStage("cta");
         try {
           audio.startCityAmbient();
         } catch (e) {}
-      }, 11000);
-    } else if (stage === "network_glow") {
-      // Transition to logo_formation after 7 seconds
-      t1 = setTimeout(() => {
-        setStage("logo_formation");
-      }, 7000);
-    } else if (stage === "logo_formation") {
-      // Transition to manifesto after 6 seconds
-      t1 = setTimeout(() => {
-        setStage("manifesto");
-        setManifestoSlide(0);
-      }, 6000);
-    } else if (stage === "manifesto") {
-      // Step through manifesto texts (3 seconds per sentence)
-      t1 = setTimeout(() => setManifestoSlide(1), 3500);
-      t2 = setTimeout(() => setManifestoSlide(2), 7000);
-      t3 = setTimeout(() => {
-        setStage("cta");
-      }, 10500);
+      }, f(10500));
     }
 
     return () => {
@@ -105,7 +100,7 @@ export default function FinalCinematic({
       clearTimeout(t7);
       clearTimeout(t8);
     };
-  }, [stage]);
+  }, [stage, isMobile]);
 
   // Handle tiny bike journey at the end of the CTA
   useEffect(() => {
@@ -154,7 +149,7 @@ export default function FinalCinematic({
               onClick={() => setStage("cta")}
               className="flex items-center gap-1 bg-[#2a2e34]/5 hover:bg-[#2a2e34]/10 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#2a2e34]/10 text-[10px] sm:text-xs font-bold transition-all active:scale-95 cursor-pointer"
             >
-              Skip <span className="hidden sm:inline">to CTA</span> <ChevronLast className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              Skip <span className="hidden sm:inline">to Waitlist</span> <ChevronLast className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
           )}
           <button 
@@ -525,325 +520,7 @@ export default function FinalCinematic({
             </motion.div>
           )}
 
-          {/* ==========================================
-              STAGE 2: ZOOM OUT & ROUTE GLOW (NETWORK)
-              ========================================== */}
-          {stage === "network_glow" && (
-            <motion.div 
-              key="network-stage"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.08 }}
-              transition={{ duration: 0.9, ease: "easeInOut" }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6"
-            >
-              <div className="w-full max-w-4xl aspect-[4/3] xs:aspect-[16/11] sm:aspect-[16/10] md:aspect-[16/9] bg-[#2a2e34] border border-white/10 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
-                
-                {/* SVG Route Networks */}
-                <div className="flex-1 w-full relative overflow-hidden bg-gradient-to-b from-[#1b1e22] to-[#2a2e34]">
-                  
-                  {/* Grid Lines background */}
-                  <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:16px_16px]" />
 
-                  <svg viewBox="0 0 800 450" className="w-full h-full">
-                    <defs>
-                      <filter id="glow-bright" x="-30%" y="-30%" width="160%" height="160%">
-                        <feGaussianBlur stdDeviation="6" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                    </defs>
-
-                    {/* Base city outline dots */}
-                    <g opacity="0.15" stroke="#ffffff" strokeWidth="1">
-                      <line x1="100" y1="100" x2="700" y2="100" strokeDasharray="3,6" />
-                      <line x1="100" y1="200" x2="700" y2="200" strokeDasharray="3,6" />
-                      <line x1="100" y1="300" x2="700" y2="300" strokeDasharray="3,6" />
-                      <line x1="200" y1="50" x2="200" y2="400" strokeDasharray="3,6" />
-                      <line x1="400" y1="50" x2="400" y2="400" strokeDasharray="3,6" />
-                      <line x1="600" y1="50" x2="600" y2="400" strokeDasharray="3,6" />
-                    </g>
-
-                    {/* Main Commuted Route (Starts glowing first) */}
-                    <path 
-                      d="M 220,280 L 320,180 L 450,230" 
-                      fill="none" 
-                      stroke="#ffb300" 
-                      strokeWidth="5.5" 
-                      filter="url(#glow-bright)"
-                      strokeLinecap="round"
-                    >
-                      <animate attributeName="stroke-dasharray" values="1000; 1000" dur="4s" />
-                    </path>
-
-                    {/* Dozens and Hundreds of Other Glowing Routes Drawing dynamically */}
-                    <g stroke="#ffb300" strokeLinecap="round" opacity="0.9">
-                      {/* Secondary Routes */}
-                      <path d="M 120,80 L 260,140" fill="none" strokeWidth="2.5" filter="url(#glow-bright)">
-                        <animate attributeName="stroke-dashoffset" values="300; 0" dur="2.5s" fill="freeze" />
-                        <animate attributeName="stroke-dasharray" values="300" dur="1s" />
-                      </path>
-
-                      <path d="M 280,320 L 410,240 L 520,380" fill="none" strokeWidth="3" filter="url(#glow-bright)">
-                        <animate attributeName="stroke-dashoffset" values="500; 0" dur="3s" begin="0.5s" fill="freeze" />
-                        <animate attributeName="stroke-dasharray" values="500" dur="1s" />
-                      </path>
-
-                      <path d="M 540,110 L 680,180 L 620,320" fill="none" strokeWidth="2" filter="url(#glow-bright)">
-                        <animate attributeName="stroke-dashoffset" values="400; 0" dur="2.8s" begin="0.8s" fill="freeze" />
-                        <animate attributeName="stroke-dasharray" values="400" dur="1s" />
-                      </path>
-
-                      <path d="M 150,380 L 280,350 L 390,410" fill="none" strokeWidth="2.5" filter="url(#glow-bright)">
-                        <animate attributeName="stroke-dashoffset" values="400; 0" dur="3.2s" begin="1.2s" fill="freeze" />
-                        <animate attributeName="stroke-dasharray" values="400" dur="1s" />
-                      </path>
-
-                      <path d="M 450,80 L 590,50 L 720,140" fill="none" strokeWidth="2.8" filter="url(#glow-bright)">
-                        <animate attributeName="stroke-dashoffset" values="500; 0" dur="3.5s" begin="1.5s" fill="freeze" />
-                        <animate attributeName="stroke-dasharray" values="500" dur="1s" />
-                      </path>
-                    </g>
-
-                    {/* Massive background web lines (hundreds of connections) */}
-                    <g stroke="#ffb300" strokeWidth="0.8" opacity="0.4" strokeDasharray="2,5">
-                      <line x1="260" y1="140" x2="280" y2="320" />
-                      <line x1="320" y1="180" x2="410" y2="240" />
-                      <line x1="450" y1="230" x2="540" y2="110" />
-                      <line x1="680" y1="180" x2="520" y2="380" />
-                      <line x1="280" y1="350" x2="320" y2="180" />
-                      <line x1="590" y1="50" x2="680" y2="180" />
-                    </g>
-
-                    {/* Pulse dots simulating commuters moving along lines */}
-                    <g fill="#ffb300">
-                      <circle cx="220" cy="280" r="4" filter="url(#glow-bright)" />
-                      <circle cx="450" cy="230" r="4.5" filter="url(#glow-bright)" />
-                      <circle cx="260" cy="140" r="3" />
-                      <circle cx="410" cy="240" r="3.5" />
-                      <circle cx="680" cy="180" r="3" />
-                      
-                      {/* Animated commuter micro-dots traveling */}
-                      <circle cx="0" cy="0" r="2.5">
-                        <animateMotion path="M 120,80 L 260,140" dur="4s" repeatCount="indefinite" />
-                      </circle>
-                      <circle cx="0" cy="0" r="2.8">
-                        <animateMotion path="M 280,320 L 410,240 L 520,380" dur="5s" repeatCount="indefinite" />
-                      </circle>
-                      <circle cx="0" cy="0" r="2.2">
-                        <animateMotion path="M 540,110 L 680,180" dur="4.2s" repeatCount="indefinite" />
-                      </circle>
-                    </g>
-                  </svg>
-
-                  {/* Text Manifestos Fading In */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-3 sm:p-6 text-center space-y-2 sm:space-y-4 pointer-events-none bg-black/50">
-                    <motion.h2 
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8, delay: 0.5 }}
-                      className="font-display font-black text-base xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl text-white uppercase tracking-tight max-w-md sm:max-w-2xl px-2"
-                    >
-                      "You're not watching one ride."
-                    </motion.h2>
-
-                    <motion.p 
-                      initial={{ opacity: 0, y: 25 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8, delay: 1.8 }}
-                      className="font-sans text-[10px] sm:text-xs md:text-sm lg:text-base text-[#ffb300] font-bold max-w-xs sm:max-w-xl px-2"
-                    >
-                      "You're watching the future of daily commuting."
-                    </motion.p>
-                  </div>
-
-                </div>
-
-                {/* Subtitle bottom card */}
-                <div className="bg-[#1b1e22] text-[#e9eaec]/60 p-3 sm:p-5 text-center flex flex-col items-center justify-center border-t border-white/5 space-y-1">
-                  <span className="font-mono text-[8px] sm:text-[9px] font-black text-[#ffb300] tracking-widest uppercase">CONNECTED PATHWAYS</span>
-                  <p className="font-sans text-[10px] sm:text-[11px] text-[#e9eaec]/80 font-bold">Every route is integrated. Connecting daily routes for thousands of commuters.</p>
-                </div>
-
-              </div>
-            </motion.div>
-          )}
-
-          {/* ==========================================
-              STAGE 3: MEGA ZOOM & LOGO FORMATION
-              ========================================== */}
-          {stage === "logo_formation" && (
-            <motion.div 
-              key="logo-stage"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ duration: 0.8 }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6 bg-[#e9eaec]"
-            >
-              <div className="w-full max-w-4xl aspect-[4/3] xs:aspect-[16/11] sm:aspect-[16/10] md:aspect-[16/9] bg-[#e9eaec] border border-[#2a2e34]/15 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl relative flex flex-col">
-                
-                <div className="flex-1 w-full relative overflow-hidden bg-gradient-to-b from-[#d8dadf]/20 to-[#e9eaec] flex items-center justify-center">
-                  
-                  {/* Background particle grids */}
-                  <div className="absolute inset-0 bg-[radial-gradient(#2a2e340a_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-70" />
-
-                  {/* Glowing vector canvas drawing the MoveBuddy Logo */}
-                  <svg viewBox="0 0 600 350" className="w-full max-w-lg aspect-video">
-                    <defs>
-                      <filter id="logo-glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="5" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                    </defs>
-
-                    {/* Pulse coordinates */}
-                    <g stroke="#2a2e34" strokeWidth="1" strokeDasharray="3,6" opacity="0.25">
-                      <circle cx="300" cy="175" r="140" fill="none" />
-                      <circle cx="300" cy="175" r="90" fill="none" />
-                      <line x1="300" y1="10" x2="300" y2="340" />
-                      <line x1="100" y1="175" x2="500" y2="175" />
-                    </g>
-
-                    {/* Animated converging route paths morphing into the circle */}
-                    <g fill="none" strokeLinecap="round">
-                      {/* Left Route wrapping circle */}
-                      <path 
-                        d="M 120,175 A 180,180 0 1,1 480,175" 
-                        stroke="#ffb300" 
-                        strokeWidth="7" 
-                        filter="url(#logo-glow)"
-                      >
-                        <animate attributeName="stroke-dasharray" values="0,1000; 1000,1000" dur="3s" fill="freeze" />
-                      </path>
-
-                      {/* Complete outer circle outline in bold Charcoal */}
-                      <circle 
-                        cx="300" 
-                        cy="175" 
-                        r="68" 
-                        stroke="#2a2e34" 
-                        strokeWidth="10" 
-                      >
-                        <animate attributeName="stroke-dasharray" values="0,500; 500,500" dur="2.8s" begin="0.2s" fill="freeze" />
-                      </circle>
-
-                      {/* Inner dot - pulsing and glowing */}
-                      <circle 
-                        cx="300" 
-                        cy="175" 
-                        r="18" 
-                        fill="#ffb300" 
-                        filter="url(#logo-glow)"
-                      >
-                        <animate attributeName="r" values="14; 19; 14" dur="2s" repeatCount="indefinite" />
-                      </circle>
-                    </g>
-
-                    {/* Pulsing City Pins converging */}
-                    <g fill="#2a2e34">
-                      <circle cx="210" cy="120" r="4" className="animate-ping" />
-                      <circle cx="390" cy="230" r="4.5" className="animate-ping" />
-                      <circle cx="160" cy="220" r="3.5" />
-                      <circle cx="440" cy="120" r="4" />
-                    </g>
-                  </svg>
-
-                  {/* Absolute subtle watermark */}
-                  <div className="absolute bottom-12 text-center flex flex-col items-center">
-                    <span className="font-display font-black text-lg tracking-[0.3em] text-[#2a2e34] uppercase">MOVEBUDDY</span>
-                    <span className="font-mono text-[8px] font-bold text-[#2a2e34]/50 tracking-widest uppercase mt-1">Your Smart Daily Commute</span>
-                  </div>
-
-                </div>
-
-                {/* Subtitle card */}
-                <div className="bg-[#2a2e34] text-[#e9eaec]/60 p-3 sm:p-5 text-center flex flex-col items-center justify-center border-t border-white/5 space-y-1">
-                  <span className="font-mono text-[8px] sm:text-[9px] font-black text-[#ffb300] tracking-widest uppercase">THE UNIFIED NETWORK</span>
-                  <p className="font-sans text-[10px] sm:text-[11px] text-[#e9eaec]/80 font-bold">Daily commuting paths come together to shape the unified MoveBuddy community.</p>
-                </div>
-
-              </div>
-            </motion.div>
-          )}
-
-          {/* ==========================================
-              STAGE 4: TEXT MANIFESTO SLIDES
-              ========================================== */}
-          {stage === "manifesto" && (
-            <motion.div 
-              key="manifesto-stage"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-[#e9eaec]"
-            >
-              <div className="w-full max-w-3xl text-center space-y-8 px-6">
-                
-                {/* Floating graphic element */}
-                <div className="flex justify-center mb-4">
-                  <span className="w-2 h-2 rounded-full bg-[#ffb300] animate-ping" />
-                </div>
-
-                <AnimatePresence mode="wait">
-                  {manifestoSlide === 0 && (
-                    <motion.div
-                      key="slide-0"
-                      initial={{ opacity: 0, y: 35 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -25 }}
-                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <h3 className="font-mono text-[10px] font-black text-[#2a2e34]/40 uppercase tracking-[0.4em] mb-2">A BETTER WAY TO COMMUTE.</h3>
-                      <h1 className="font-display font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#2a2e34] leading-tight uppercase tracking-tight">
-                        "Every great workday<br />
-                        begins with a<br />
-                        <span className="text-[#ffb300]">better journey.</span>"
-                      </h1>
-                    </motion.div>
-                  )}
-
-                  {manifestoSlide === 1 && (
-                    <motion.div
-                      key="slide-1"
-                      initial={{ opacity: 0, y: 35 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -25 }}
-                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <h3 className="font-mono text-[10px] font-black text-[#2a2e34]/40 uppercase tracking-[0.4em] mb-2">EVERY MORNING. MADE BETTER.</h3>
-                      <h1 className="font-display font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#2a2e34] leading-tight uppercase tracking-tight">
-                        One Ride.<br />
-                        One Platform.<br />
-                        <span className="text-[#ffb300]">One Smarter Commute.</span>
-                      </h1>
-                    </motion.div>
-                  )}
-
-                  {manifestoSlide === 2 && (
-                    <motion.div
-                      key="slide-2"
-                      initial={{ opacity: 0, y: 35 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -25 }}
-                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <h3 className="font-mono text-[10px] font-black text-[#2a2e34]/40 uppercase tracking-[0.4em] mb-2">THE FUTURE OF DAILY COMMUTING.</h3>
-                      <h1 className="font-display font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#2a2e34] leading-tight uppercase tracking-tight">
-                        The Journey<br />
-                        Starts Here<br />
-                        <span className="text-[#ffb300]">With MoveBuddy.</span>
-                      </h1>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-              </div>
-            </motion.div>
-          )}
 
           {/* ==========================================
               STAGE 5: REVEAL FINAL CALL-TO-ACTION (CTA)
@@ -855,12 +532,12 @@ export default function FinalCinematic({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-[#e9eaec] overflow-y-auto"
+              className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6 bg-[#e9eaec] overflow-y-auto"
             >
-              <div className="w-full max-w-3xl text-center flex flex-col items-center justify-center space-y-6 py-7 md:py-12 relative">
+              <div className="w-full max-w-3xl text-center flex flex-col items-center justify-center space-y-4 sm:space-y-6 py-2 sm:py-7 md:py-12 relative">
                 
                 {/* 1. Centered MoveBuddy Logo assembling & breathing */}
-                <div className="relative w-full max-w-xs h-28 flex items-center justify-center mb-1">
+                <div className="relative w-full max-w-xs h-16 sm:h-28 flex items-center justify-center mb-0.5 sm:mb-1">
                   {/* Subtle route network background lines behind the logo */}
                   <svg viewBox="0 0 200 100" className="absolute inset-0 w-full h-full opacity-30 pointer-events-none">
                     <defs>
@@ -902,7 +579,7 @@ export default function FinalCinematic({
                     }}
                     className="relative z-10 flex items-center justify-center"
                   >
-                    <div className="w-16 h-16 bg-[#2a2e34] rounded-3xl flex items-center justify-center shadow-2xl border border-white/10 relative">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#2a2e34] rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-2xl border border-white/10 relative">
                       {/* Assembling path effect around the logo box */}
                       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 64 64">
                         <motion.rect
@@ -919,17 +596,17 @@ export default function FinalCinematic({
                           transition={{ duration: 2.2, ease: "easeInOut", delay: 0.4 }}
                         />
                       </svg>
-                      <CircleDot className="w-8 h-8 text-[#ffb300]" />
+                      <CircleDot className="w-6 h-6 sm:w-8 sm:h-8 text-[#ffb300]" />
                     </div>
                   </motion.div>
                 </div>
 
                 {/* 2. Headline Statement */}
-                <div className="space-y-2 max-w-xl text-center">
-                  <h1 className="font-display font-black text-2xl sm:text-3xl md:text-4xl text-[#2a2e34] leading-tight tracking-tight uppercase">
+                <div className="space-y-1 sm:space-y-2 max-w-xl text-center">
+                  <h1 className="font-display font-black text-xl sm:text-3xl md:text-4xl text-[#2a2e34] leading-tight tracking-tight uppercase">
                     Join MoveBuddy Early Access
                   </h1>
-                  <p className="font-sans text-xs sm:text-sm text-[#2a2e34]/75 max-w-md mx-auto leading-relaxed font-medium">
+                  <p className="font-sans text-[11px] sm:text-sm text-[#2a2e34]/75 max-w-md mx-auto leading-relaxed font-medium">
                     Be among the first commuters shaping India's safest and smartest recurring mobility network.
                   </p>
                 </div>
@@ -939,47 +616,52 @@ export default function FinalCinematic({
                   initial={{ y: 35, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                  className="w-full max-w-md bg-[#2a2e34] border border-[#2a2e34]/10 p-5 sm:p-7 rounded-3xl shadow-2xl space-y-3.5 text-left text-white relative overflow-hidden"
+                  className="w-full max-w-md bg-[#121518] border border-white/15 p-4 sm:p-7 rounded-2xl sm:rounded-3xl shadow-2xl space-y-3 sm:space-y-3.5 text-left text-white relative overflow-hidden"
                 >
                   {/* Subtle card background grid */}
                   <div className="absolute inset-0 bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:12px_12px] opacity-40 pointer-events-none" />
 
                   <div className="flex items-center gap-2 relative z-10">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#ffb300] animate-ping" />
-                    <span className="font-mono text-[9px] font-bold text-white/50 uppercase tracking-widest">
+                    <span className="font-mono text-[9px] font-bold text-[#ffb300] uppercase tracking-widest">
                       🚀 SECURE YOUR SPOT ON THE WAITLIST
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-white/75 leading-relaxed relative z-10 font-sans">
-                    Help shape India's safest and smartest recurring commute platform. Enter your email to immediately reserve your slot.
+                  <p className="text-[10px] sm:text-[11px] text-white/90 leading-relaxed relative z-10 font-sans">
+                    Help shape India's safest and smartest recurring commute platform. Enter your email or phone number to immediately reserve your slot.
                   </p>
 
                   {!isSubmitted ? (
                     <form onSubmit={handleSubmitEmail} className="space-y-3 relative z-10 w-full">
                       <div className="flex flex-col gap-2.5">
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex flex-col gap-1.5">
                           <input 
-                            type="email" 
+                            type="text" 
                             required
-                            placeholder="yourname@workplace.com"
+                            placeholder="Email or Phone Number"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-[#ffb300] focus:border-[#ffb300] transition-all"
+                            onChange={(e) => {
+                              setEmail(e.target.value);
+                              if (setPhone) setPhone(e.target.value);
+                            }}
+                            className="w-full bg-white/[0.08] border border-white/20 rounded-xl px-4 py-3 text-xs text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-[#ffb300] focus:border-[#ffb300] transition-all"
                           />
-                          <input 
-                            type="tel" 
-                            required
-                            placeholder="Phone Number"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-[#ffb300] focus:border-[#ffb300] transition-all"
-                          />
+                          {errorMsg && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="text-[10px] text-red-400 font-bold flex items-center gap-1 mt-0.5"
+                            >
+                              <span className="w-1 h-1 rounded-full bg-red-400" />
+                              <span>{errorMsg}</span>
+                            </motion.div>
+                          )}
                         </div>
                         
                         <button 
                           type="submit"
-                          className="w-full bg-[#ffb300] hover:bg-[#ffb300]/95 text-[#2a2e34] text-xs font-black py-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="w-full bg-[#ffb300] hover:bg-[#ffb300]/95 text-[#2a2e34] text-xs font-black py-2.5 sm:py-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           Join the Waitlist <ArrowRight className="w-3.5 h-3.5" />
                         </button>
@@ -1012,69 +694,110 @@ export default function FinalCinematic({
                   )}
                 </motion.div>
 
-                {/* 4. Elegant Action Cards Below - Responsive 3-Column Grid */}
+                {/* 4. Elegant Action Cards Below - Responsive layout */}
                 <motion.div 
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
-                  className="w-full max-w-md sm:max-w-xl grid grid-cols-1 sm:grid-cols-3 gap-3 text-left"
+                  className="w-full max-w-md sm:max-w-xl"
                 >
-                  {/* Follow Journey card */}
-                  <a 
-                    href="https://www.instagram.com/movebuddy.io?igsh=MWJmZmozajUxM3J0OA=="
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between sm:h-24 group"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="p-1.5 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]/20 rounded-xl">
-                        <Instagram className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
-                      </span>
-                      <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
-                    </div>
-                    <div>
-                      <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Instagram</h4>
-                      <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50">@movebuddy.io</span>
-                    </div>
-                  </a>
+                  {/* Desktop view: 3-column full detailed cards */}
+                  <div className="hidden sm:grid grid-cols-3 gap-3 text-left">
+                    {/* Follow Journey card */}
+                    <a 
+                      href="https://www.instagram.com/movebuddy.io?igsh=MWJmZmozajUxM3J0OA=="
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between h-24 group"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="p-1.5 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]/20 rounded-xl">
+                          <Instagram className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Instagram</h4>
+                        <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50">@movebuddy.io</span>
+                      </div>
+                    </a>
 
-                  {/* Mail feedback card - directly clickable with mailto */}
-                  <a 
-                    href="mailto:Subratpradhan.mb@gmail.com"
-                    className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between sm:h-24 text-left group"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="p-1.5 bg-[#ffb300]/10 rounded-xl">
-                        <Mail className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
-                      </span>
-                      <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
-                    </div>
-                    <div>
-                      <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Email Us</h4>
-                      <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50 leading-none block truncate">
-                        Subratpradhan.mb@gmail.com
-                      </span>
-                    </div>
-                  </a>
+                    {/* Mail feedback card - directly clickable with mailto */}
+                    <a 
+                      href="mailto:Subratpradhan.mb@gmail.com"
+                      className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between h-24 text-left group"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="p-1.5 bg-[#ffb300]/10 rounded-xl">
+                          <Mail className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Email Us</h4>
+                        <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50 leading-none block truncate">
+                          Subratpradhan.mb@gmail.com
+                        </span>
+                      </div>
+                    </a>
 
-                  {/* Phone feedback card - directly clickable with tel */}
-                  <a 
-                    href="tel:+918249089921"
-                    className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between sm:h-24 text-left group"
-                  >
-                    <div className="flex justify-between items-start mb-2">
+                    {/* Phone feedback card - directly clickable with tel */}
+                    <a 
+                      href="tel:+918249089921"
+                      className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between h-24 text-left group"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="p-1.5 bg-[#ffb300]/10 rounded-xl">
+                          <Phone className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Call Us</h4>
+                        <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50 leading-none block">
+                          +91 82490 89921
+                        </span>
+                      </div>
+                    </a>
+                  </div>
+
+                  {/* Mobile view: Compact horizontal row of round-icon cards */}
+                  <div className="flex sm:hidden justify-center items-center gap-4 py-1">
+                    {/* Instagram Link */}
+                    <a 
+                      href="https://www.instagram.com/movebuddy.io?igsh=MWJmZmozajUxM3J0OA=="
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Follow Instagram"
+                      className="w-12 h-12 bg-white border border-[#2a2e34]/10 rounded-2xl flex items-center justify-center shadow-sm hover:border-[#ffb300] active:scale-95 transition-all"
+                    >
+                      <span className="p-1.5 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]/15 rounded-xl">
+                        <Instagram className="w-5 h-5 text-[#2a2e34]" />
+                      </span>
+                    </a>
+
+                    {/* Email Link */}
+                    <a 
+                      href="mailto:Subratpradhan.mb@gmail.com"
+                      title="Email Us"
+                      className="w-12 h-12 bg-white border border-[#2a2e34]/10 rounded-2xl flex items-center justify-center shadow-sm hover:border-[#ffb300] active:scale-95 transition-all"
+                    >
                       <span className="p-1.5 bg-[#ffb300]/10 rounded-xl">
-                        <Phone className="w-3.5 h-3.5 text-[#2a2e34] group-hover:scale-110 transition-transform" />
+                        <Mail className="w-5 h-5 text-[#2a2e34]" />
                       </span>
-                      <ChevronRight className="w-3.5 h-3.5 text-[#2a2e34]/30 group-hover:text-[#2a2e34] transition-colors" />
-                    </div>
-                    <div>
-                      <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Call Us</h4>
-                      <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50 leading-none block">
-                        +91 82490 89921
+                    </a>
+
+                    {/* Call Link */}
+                    <a 
+                      href="tel:+918249089921"
+                      title="Call Us"
+                      className="w-12 h-12 bg-white border border-[#2a2e34]/10 rounded-2xl flex items-center justify-center shadow-sm hover:border-[#ffb300] active:scale-95 transition-all"
+                    >
+                      <span className="p-1.5 bg-[#ffb300]/10 rounded-xl">
+                        <Phone className="w-5 h-5 text-[#2a2e34]" />
                       </span>
-                    </div>
-                  </a>
+                    </a>
+                  </div>
                 </motion.div>
 
                 {/* ==========================================
@@ -1084,7 +807,7 @@ export default function FinalCinematic({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 1 }}
-                  className="w-full max-w-md pt-8 flex flex-col items-center justify-center space-y-4 border-t border-[#2a2e34]/10 mt-6"
+                  className="w-full max-w-md pt-4 sm:pt-8 flex flex-col items-center justify-center space-y-2 sm:space-y-4 border-t border-[#2a2e34]/10 mt-3 sm:mt-6"
                 >
                   <span className="font-display font-black text-sm text-[#2a2e34] tracking-wider uppercase">MOVEBUDDY</span>
                   
@@ -1197,7 +920,7 @@ export default function FinalCinematic({
                           }}
                           className="px-5 py-2.5 rounded-full border border-white/20 hover:bg-white/10 text-white font-mono text-[9px] font-bold tracking-widest uppercase transition-all active:scale-95 cursor-pointer"
                         >
-                          Stay on CTA Screen
+                          Keep Exploring
                         </button>
 
                         <button 

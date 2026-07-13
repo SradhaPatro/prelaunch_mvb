@@ -42,10 +42,11 @@ const keyframes: CameraKeyframe[] = [
   { p: 0.58, x: 1150, y: 150,  w: 500,  h: 375 },  // 2. Rohit's bike starting / headlight glows
   { p: 0.68, x: 650,  y: 650,  w: 600,  h: 450 },  // 3. Pan down to street level meeting
   { p: 0.74, x: 650,  y: 650,  w: 600,  h: 450 },  // 3. Helmet match / pin verification
-  { p: 0.85, x: 650,  y: 1100, w: 500,  h: 375 },  // 4. Highway cinematic active commute
-  { p: 0.90, x: 650,  y: 1100, w: 500,  h: 375 },  // 4. Floating HUD product features
-  { p: 0.94, x: 150,  y: 1100, w: 500,  h: 375 },  // 5. Office destination park arrival
-  { p: 0.97, x: 400,  y: 300,  w: 1200, h: 900 },  // 6. Seamless zoom back out to India Network
+  { p: 0.82, x: 650,  y: 1100, w: 500,  h: 375 },  // 4. Highway cinematic active commute
+  { p: 0.87, x: 650,  y: 1100, w: 500,  h: 375 },  // 4. Floating HUD product features
+  { p: 0.91, x: 150,  y: 1100, w: 500,  h: 375 },  // 5. Office destination park arrival
+  { p: 0.95, x: 150,  y: 1100, w: 500,  h: 375 },  // 5. Office destination pause
+  { p: 0.98, x: 400,  y: 300,  w: 1200, h: 900 },  // 6. Seamless zoom back out to India Network
   { p: 1.00, x: 400,  y: -400, w: 1200, h: 900 }   // 7. Pan up into final sky call-to-action
 ];
 
@@ -60,16 +61,18 @@ const mobileKeyframes: CameraKeyframe[] = [
   { p: 0.58, x: 1100, y: 90,   w: 410,  h: 307.5 },// 2. Rohit's garage, match popup
   { p: 0.65, x: 700,  y: 640,  w: 380,  h: 285 },  // 3. Street level meeting (Aman & Rohit meet)
   { p: 0.74, x: 700,  y: 640,  w: 380,  h: 285 },  // 3. Verification/badges
-  { p: 0.82, x: 700,  y: 1100, w: 400,  h: 300 },  // 4. Highway active ride & HUD tags
-  { p: 0.90, x: 700,  y: 1100, w: 400,  h: 300 },  // 4. Highway active ride & HUD tags
-  { p: 0.94, x: 130,  y: 1110, w: 280,  h: 210 },  // 5. Office destination park arrival
-  { p: 0.97, x: 400,  y: 300,  w: 1200, h: 900 },  // 6. Seamless zoom back out to India Network
+  { p: 0.80, x: 700,  y: 1100, w: 400,  h: 300 },  // 4. Highway active ride & HUD tags
+  { p: 0.85, x: 700,  y: 1100, w: 400,  h: 300 },  // 4. Highway active ride & HUD tags
+  { p: 0.89, x: 130,  y: 1110, w: 280,  h: 210 },  // 5. Office destination park arrival
+  { p: 0.95, x: 130,  y: 1110, w: 280,  h: 210 },  // 5. Office destination pause
+  { p: 0.98, x: 400,  y: 300,  w: 1200, h: 900 },  // 6. Seamless zoom back out to India Network
   { p: 1.00, x: 400,  y: -400, w: 1200, h: 900 }   // 7. Pan up into final sky
 ];
 
 export default function StoryVisualizer({ progress, activeSceneOverride }: StoryVisualizerProps) {
   const [smoothProgress, setSmoothProgress] = useState(0);
   const lastTriggeredScene = useRef<number | null>(null);
+  const playedWakeUp = useRef(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -84,15 +87,30 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
     let rAF: number;
     const update = () => {
       setSmoothProgress((prev) => {
-        const diff = progress - prev;
-        if (Math.abs(diff) < 0.0001) return progress;
-        return prev + diff * 0.08; // Inertia factor
+        let target = progress;
+        if (isMobile) {
+          const steps = [0.0, 0.20, 0.35, 0.52, 0.68, 0.80, 0.89, 0.95, 1.0];
+          for (let i = 0; i < steps.length - 1; i++) {
+            const s = steps[i];
+            const e = steps[i + 1];
+            if (progress >= s && progress <= e) {
+              const t = (progress - s) / (e - s);
+              // Linger around the scene keyframes (flatten slope near boundaries)
+              const tWarped = t - 0.15 * Math.sin(2 * Math.PI * t);
+              target = s + (e - s) * Math.max(0, Math.min(1, tWarped));
+              break;
+            }
+          }
+        }
+        const diff = target - prev;
+        if (Math.abs(diff) < 0.0001) return target;
+        return prev + diff * (isMobile ? 0.06 : 0.08); // slightly smoother damping on mobile
       });
       rAF = requestAnimationFrame(update);
     };
     rAF = requestAnimationFrame(update);
     return () => cancelAnimationFrame(rAF);
-  }, [progress]);
+  }, [progress, isMobile]);
 
   // Interpolated Viewbox Camera Calculation
   const getInterpolatedViewBox = () => {
@@ -155,14 +173,27 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
   useEffect(() => {
     try {
       const p = smoothProgress;
-      // Alarm condition: only between 0.12 and 0.16 (before Aman wakes up and turns it off)
-      if (p >= 0.12 && p < 0.16) {
+      // Alarm condition: only between 0.12 and 0.20 (before Aman wakes up and turns it off)
+      if (p >= 0.12 && p < 0.20) {
         audio.startAlarm();
+        playedWakeUp.current = false;
       } else {
         audio.stopAlarm();
       }
 
+      // Wake up chime trigger: exactly when he wakes up (transitioning past 0.20)
+      if (p >= 0.20 && p < 0.35) {
+        if (!playedWakeUp.current) {
+          audio.playWakeUpChime();
+          playedWakeUp.current = true;
+        }
+      }
+      if (p < 0.12) {
+        playedWakeUp.current = false;
+      }
+
       // Engine conditions
+      const arrivalThreshold = isMobile ? 0.89 : 0.91;
       if (p >= 0.42 && p < 0.58) {
         // Starts his bike
         audio.startEngine();
@@ -170,11 +201,11 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
       } else if (p >= 0.58 && p < 0.70) {
         // Met up
         audio.updateEngineRPM(0.1);
-      } else if (p >= 0.70 && p < 0.88) {
+      } else if (p >= 0.70 && p < arrivalThreshold) {
         // Commuting! Pitch revs high
         audio.startEngine();
         audio.updateEngineRPM(0.7);
-      } else if (p >= 0.88 && p < 0.94) {
+      } else if (p >= arrivalThreshold && p < 0.95) {
         // Arrives
         audio.stopEngine();
       } else {
@@ -182,11 +213,11 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
       }
 
       // Arrival trigger (payment ding on arrival point)
-      if (p >= 0.88 && p < 0.90 && lastTriggeredScene.current !== 5) {
+      if (p >= arrivalThreshold && p < (arrivalThreshold + 0.02) && lastTriggeredScene.current !== 5) {
         audio.playPaymentDing();
         lastTriggeredScene.current = 5;
       }
-      if (p < 0.88 || p >= 0.90) {
+      if (p < arrivalThreshold || p >= (arrivalThreshold + 0.02)) {
         if (lastTriggeredScene.current === 5) {
           lastTriggeredScene.current = null;
         }
@@ -370,7 +401,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
         {/* ==========================================
             SCENE 0 & 6: OUTLINE MAP OF INDIA & NETWORKS
             ========================================== */}
-        <g id="blr-network-scene" opacity={smoothProgress < 0.15 || smoothProgress > 0.90 ? 1 : 0.05} style={{ transition: "opacity 0.6s" }}>
+        <g id="blr-network-scene" opacity={smoothProgress < 0.15 || smoothProgress > 0.95 ? 1 : 0.05} style={{ transition: "opacity 0.6s" }}>
           {/* Stylized geometric background network of Bangalore tech highway arteries */}
           <path 
             d="M 620,860 L 920,1030 L 1060,900 L 1020,840 L 1000,780 L 970,720 L 1080,680 L 1160,590 L 1140,510 L 920,520 L 820,350 Z" 
@@ -411,7 +442,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
                   strokeLinecap="round"
                   filter="url(#glow-yellow)"
                   strokeDasharray="12,12"
-                  opacity={smoothProgress < 0.10 || smoothProgress > 0.93 ? 0.9 : 0}
+                  opacity={smoothProgress < 0.10 || smoothProgress > 0.95 ? 0.9 : 0}
                   className="animate-route-pulse"
                   style={{ 
                     strokeDashoffset: (smoothProgress * -400) % 200,
@@ -483,21 +514,21 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
           
           {/* Vibrating Alarm Phone */}
           <g 
-            transform={`translate(320, 125) ${smoothProgress >= 0.12 && smoothProgress < 0.16 ? `translate(${Math.sin(Date.now() * 0.15) * 2.5}, ${Math.cos(Date.now() * 0.15) * 1.5})` : ""}`}
+            transform={`translate(320, 125) ${smoothProgress >= 0.12 && smoothProgress < 0.20 ? `translate(${Math.sin(Date.now() * 0.15) * 2.5}, ${Math.cos(Date.now() * 0.15) * 1.5})` : ""}`}
             style={{ transformOrigin: "center" }}
           >
             {/* Phone body */}
             <rect x="-8" y="-15" width="16" height="30" rx="3" fill="#e9eaec" stroke="#2a2e34" strokeWidth="1.5" />
             
             {/* Phone screen */}
-            <rect x="-6" y="-13" width="12" height="26" rx="1.5" fill={smoothProgress >= 0.12 && smoothProgress < 0.16 ? "#ffb300" : "#2a2e34"} opacity={smoothProgress >= 0.12 && smoothProgress < 0.16 ? "0.9" : "0.15"} />
+            <rect x="-6" y="-13" width="12" height="26" rx="1.5" fill={smoothProgress >= 0.12 && smoothProgress < 0.20 ? "#ffb300" : "#2a2e34"} opacity={smoothProgress >= 0.12 && smoothProgress < 0.20 ? "0.9" : "0.15"} />
             
             {/* Details */}
             <line x1="-2" y1="-14" x2="2" y2="-14" stroke="#2a2e34" strokeWidth="1" />
             <circle cx="0" cy="14" r="1" fill="#2a2e34" />
 
             {/* Pulsing alarm soundwaves directly around the phone body */}
-            {smoothProgress >= 0.12 && smoothProgress < 0.16 && (
+            {smoothProgress >= 0.12 && smoothProgress < 0.20 && (
               <g opacity="0.85" stroke="#ffb300" strokeWidth="1.2" fill="none">
                 <path d="M -13,-6 Q -18,0 -13,6" />
                 <path d="M -17,-11 Q -24,0 -17,11" />
@@ -930,52 +961,53 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             transform={`translate(280, 110) translate(0, ${Math.sin(smoothProgress * 60) * 1.5}) rotate(${(smoothProgress > 0.70 && smoothProgress < 0.88) ? -3.5 + Math.sin(smoothProgress * 100) * 2.0 : 0})`}
             style={{ transformOrigin: "5px 85px" }}
           >
-            {/* 1. Rear Wheel - spinning spokes */}
-            <circle cx="-40" cy="65" r="20" fill="none" stroke="#2a2e34" strokeWidth="4.5" />
-            <circle cx="-40" cy="65" r="16" fill="none" stroke="#2a2e34" strokeWidth="1" />
+            {/* 1. Rear Wheel - spinning spokes with enhanced thickness */}
+            <circle cx="-40" cy="65" r="20" fill="#121518" stroke="#2a2e34" strokeWidth="5.5" />
+            <circle cx="-40" cy="65" r="15" fill="none" stroke="#e9eaec" strokeWidth="1.5" opacity="0.8" />
             <g className="bike-wheel-spin" style={{ transformOrigin: "-40px 65px" }}>
-              <line x1="-40" y1="45" x2="-40" y2="85" stroke="#2a2e34" strokeWidth="1.8" />
-              <line x1="-60" y1="65" x2="-20" y2="65" stroke="#2a2e34" strokeWidth="1.8" />
-              <line x1="-54" y1="51" x2="-26" y2="79" stroke="#2a2e34" strokeWidth="1.8" />
-              <line x1="-26" y1="51" x2="-54" y2="79" stroke="#2a2e34" strokeWidth="1.8" />
+              <line x1="-40" y1="45" x2="-40" y2="85" stroke="#e9eaec" strokeWidth="1.8" opacity="0.9" />
+              <line x1="-60" y1="65" x2="-20" y2="65" stroke="#e9eaec" strokeWidth="1.8" opacity="0.9" />
+              <line x1="-54" y1="51" x2="-26" y2="79" stroke="#e9eaec" strokeWidth="1.8" opacity="0.6" />
+              <line x1="-26" y1="51" x2="-54" y2="79" stroke="#e9eaec" strokeWidth="1.8" opacity="0.6" />
             </g>
 
-            {/* 2. Front Wheel - spinning spokes */}
-            <circle cx="50" cy="65" r="20" fill="none" stroke="#2a2e34" strokeWidth="4.5" />
-            <circle cx="50" cy="65" r="16" fill="none" stroke="#2a2e34" strokeWidth="1" />
+            {/* 2. Front Wheel - spinning spokes with enhanced thickness */}
+            <circle cx="50" cy="65" r="20" fill="#121518" stroke="#2a2e34" strokeWidth="5.5" />
+            <circle cx="50" cy="65" r="15" fill="none" stroke="#e9eaec" strokeWidth="1.5" opacity="0.8" />
             <g className="bike-wheel-spin" style={{ transformOrigin: "50px 65px" }}>
-              <line x1="50" y1="45" x2="50" y2="85" stroke="#2a2e34" strokeWidth="1.8" />
-              <line x1="30" y1="65" x2="70" y2="65" stroke="#2a2e34" strokeWidth="1.8" />
-              <line x1="36" y1="51" x2="64" y2="79" stroke="#2a2e34" strokeWidth="1.8" />
-              <line x1="64" y1="51" x2="36" y2="79" stroke="#2a2e34" strokeWidth="1.8" />
+              <line x1="50" y1="45" x2="50" y2="85" stroke="#e9eaec" strokeWidth="1.8" opacity="0.9" />
+              <line x1="30" y1="65" x2="70" y2="65" stroke="#e9eaec" strokeWidth="1.8" opacity="0.9" />
+              <line x1="36" y1="51" x2="64" y2="79" stroke="#e9eaec" strokeWidth="1.8" opacity="0.6" />
+              <line x1="64" y1="51" x2="36" y2="79" stroke="#e9eaec" strokeWidth="1.8" opacity="0.6" />
             </g>
             {/* Front Mudguard */}
-            <path d="M 33,56 Q 50,40 67,56" fill="none" stroke="#2a2e34" strokeWidth="3" strokeLinecap="round" />
+            <path d="M 31,54 Q 50,38 69,54" fill="#2a2e34" stroke="#ffb300" strokeWidth="2" strokeLinecap="round" />
 
             {/* 3. Front Telescopic Fork */}
-            <line x1="50" y1="65" x2="33" y2="15" stroke="#2a2e34" strokeWidth="3.5" strokeLinecap="round" />
+            <line x1="50" y1="65" x2="33" y2="15" stroke="#2a2e34" strokeWidth="4" strokeLinecap="round" />
 
             {/* 4. Rear Coil Spring Suspension */}
-            <path d="M -26,45 L -26,62" stroke="#2a2e34" strokeWidth="4.5" strokeLinecap="round" />
-            <path d="M -29,47 Q -23,47 -26,49 Q -29,51 -26,53 Q -23,55 -26,57 Q -29,59 -26,61" fill="none" stroke="#ffb300" strokeWidth="2" />
+            <path d="M -26,45 L -26,62" stroke="#2a2e34" strokeWidth="5" strokeLinecap="round" />
+            <path d="M -29,47 Q -23,47 -26,49 Q -29,51 -26,53 Q -23,55 -26,57 Q -29,59 -26,61" fill="none" stroke="#ffb300" strokeWidth="2.5" />
 
             {/* 5. Engine and Gearbox Block */}
-            <rect x="-10" y="52" width="30" height="20" rx="5" fill="#e9eaec" stroke="#2a2e34" strokeWidth="2" />
+            <rect x="-10" y="52" width="30" height="20" rx="5" fill="#2a2e34" stroke="#ffb300" strokeWidth="1.5" />
 
             {/* 6. Exhaust silencer muffler & shield */}
-            <rect x="-56" y="66" width="42" height="9" rx="2.5" fill="#2a2e34" stroke="#e9eaec" strokeWidth="1" />
-            <rect x="-46" y="67" width="26" height="3" rx="1.5" fill="#e9eaec" />
+            <rect x="-56" y="66" width="42" height="9" rx="2.5" fill="#121518" stroke="#ffb300" strokeWidth="1.2" />
+            <rect x="-46" y="67" width="26" height="3" rx="1.5" fill="#ffb300" opacity="0.8" />
 
-            {/* 7. Matte Charcoal Fuel Tank & golden decal */}
-            <path d="M -12,26 Q 8,5 34,22 C 40,26 40,30 34,34 Q 11,36 -12,26 Z" fill="#2a2e34" stroke="#2a2e34" strokeWidth="1" />
-            <path d="M -6,22 Q 8,14 26,24" fill="none" stroke="#ffb300" strokeWidth="2" />
+            {/* 7. Matte Charcoal Fuel Tank with Bold Golden Accents */}
+            <path d="M -12,26 Q 8,4 34,22 C 40,26 40,30 34,34 Q 11,36 -12,26 Z" fill="#2a2e34" stroke="#ffb300" strokeWidth="2" />
+            <path d="M -6,22 Q 8,13 26,24" fill="none" stroke="#ffb300" strokeWidth="3.5" />
 
             {/* 8. Handlebars and Mirrors */}
-            <line x1="33" y1="15" x2="18" y2="12" stroke="#2a2e34" strokeWidth="2.5" strokeLinecap="round" />
-            <path d="M 23,13 L 15,3" stroke="#2a2e34" strokeWidth="1.5" />
+            <line x1="33" y1="15" x2="16" y2="12" stroke="#2a2e34" strokeWidth="3" strokeLinecap="round" />
+            <path d="M 23,13 L 15,3" stroke="#2a2e34" strokeWidth="2" />
+            <circle cx="15" cy="3" r="3.5" fill="#2a2e34" stroke="#ffb300" strokeWidth="1" />
 
             {/* 9. Extended comfort seat */}
-            <path d="M -32,27 Q -16,22 -4,23 Q 12,24 20,29 L 20,33 Q -4,34 -32,27 Z" fill="#2a2e34" opacity="0.9" />
+            <path d="M -32,27 Q -16,21 -4,22 Q 12,23 20,29 L 20,33 Q -4,34 -32,27 Z" fill="#121518" stroke="#2a2e34" strokeWidth="1.5" />
 
             {/* 10. Glowing yellow tail exhaust heat wave & Startup Smoke Puffs */}
             <g transform="translate(-60, 70)">
@@ -989,25 +1021,42 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             </g>
 
             {/* 12. Headlight and forward beam glow */}
-            <circle cx="39" cy="22" r="4.5" fill="#ffb300" />
-            <polygon points="41,22 160,-20 160,80" fill="#ffb300" fillOpacity="0.15" filter="url(#glow-yellow)" />
+            <circle cx="39" cy="22" r="5" fill="#ffb300" filter="url(#glow-yellow)" />
+            <polygon points="41,22 160,-20 160,80" fill="#ffb300" fillOpacity="0.2" filter="url(#glow-yellow)" />
 
             {/* 13. Brake light glowing softly */}
-            <circle cx="-35" cy="25" r="2.5" fill="#ff4444" opacity="0.8" />
+            <circle cx="-35" cy="25" r="3" fill="#ff4444" opacity="0.95" filter="url(#glow-yellow)" />
 
-            {/* Rohit (Host) */}
-            <circle cx="10" cy="10" r="8.5" fill="#ffb300" stroke="#2a2e34" strokeWidth="1.5" />
-            <path d="M 6,7 L 16,7 Q 18,10 16,13 L 9,13 Z" fill="#2a2e34" /> {/* Visor */}
-            <path d="M 10,18 L 10,42" stroke="#2a2e34" strokeWidth="3.5" strokeLinecap="round" />
-            {/* Arms holding handlebars */}
-            <path d="M 10,24 L 28,26" stroke="#2a2e34" strokeWidth="2" strokeLinecap="round" />
+            {/* Rohit (Host) - Fully detailed solid premium body shape */}
+            <g id="rohit-highway-rider">
+              {/* Torso: Solid windbreaker jacket */}
+              <path d="M 0,18 C -3,21 -4,25 -4,42 L 18,42 C 18,25 17,21 14,18 Z" fill="#ffb300" stroke="#2a2e34" strokeWidth="2" strokeLinejoin="round" />
+              {/* Commuter crossbelt harness detail */}
+              <path d="M 0,18 L 11,42 M 14,18 L 3,42" stroke="#2a2e34" strokeWidth="1.5" opacity="0.25" />
+              {/* Highlight collar */}
+              <path d="M 0,18 Q 7,20 14,18" fill="none" stroke="#2a2e34" strokeWidth="1.8" />
+              {/* Solid detailed arm holding handlebars */}
+              <path d="M 7,25 Q 18,23 27,25" fill="none" stroke="#2a2e34" strokeWidth="3" strokeLinecap="round" />
+              {/* Head / Helmet */}
+              <circle cx="7" cy="8" r="9" fill="#ffb300" stroke="#2a2e34" strokeWidth="2" />
+              <path d="M 3,5 L 13,5 Q 15,8 13,11 L 6,11 Z" fill="#2a2e34" /> {/* Visor */}
+              <rect x="5" y="0" width="3" height="2" fill="#e9eaec" /> {/* DOT top strip */}
+            </g>
 
-            {/* Aman (Guest) */}
-            <circle cx="-16" cy="14" r="8.5" fill="#2a2e34" stroke="#ffb300" strokeWidth="1.5" />
-            <path d="M -12,11 L -2,11 Q 0,14 -2,17 L -9,17 Z" fill="#ffb300" opacity="0.9" /> {/* Amber Visor */}
-            <path d="M -16,22 L -18,46" stroke="#2a2e34" strokeWidth="3.5" strokeLinecap="round" />
-            {/* Arms holding host */}
-            <path d="M -18,28 L -2,26" stroke="#2a2e34" strokeWidth="2" strokeLinecap="round" />
+            {/* Aman (Guest) - Fully detailed solid premium body shape */}
+            <g id="aman-highway-rider">
+              {/* Torso: Solid office blazer jacket with contrasting highlights */}
+              <path d="M -24,22 C -27,25 -28,29 -28,45 L -8,45 C -8,29 -9,25 -13,22 Z" fill="#2a2e34" stroke="#ffb300" strokeWidth="2" strokeLinejoin="round" />
+              {/* Corporate ID lanyard/badge detail */}
+              <rect x="-19" y="27" width="4" height="6" fill="#ffb300" rx="0.5" />
+              <line x1="-17" y1="22" x2="-17" y2="27" stroke="#e9eaec" strokeWidth="1" />
+              {/* Solid detailed arms wrapping around Rohit's waist */}
+              <path d="M -18,28 Q -8,27 -1,28" fill="none" stroke="#ffb300" strokeWidth="3.5" strokeLinecap="round" />
+              {/* Head / Helmet */}
+              <circle cx="-18" cy="12" r="9" fill="#2a2e34" stroke="#ffb300" strokeWidth="2" />
+              <path d="M -14,9 L -4,9 Q -2,12 -4,15 L -11,15 Z" fill="#ffb300" opacity="0.95" /> {/* Amber Visor */}
+              <rect x="-19" y="4" width="3" height="2" fill="#ffb300" />
+            </g>
           </g>
 
           {/* Active GPS Route line drawn directly beneath the bike */}
@@ -1017,14 +1066,14 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             strokeWidth="5" 
             filter="url(#glow-yellow)" 
             strokeLinecap="round" 
-            opacity={smoothProgress > 0.70 && smoothProgress < 0.93 ? 1 : 0} 
+            opacity={smoothProgress > 0.70 && smoothProgress < (isMobile ? 0.89 : 0.91) ? 1 : 0} 
             style={{ transition: "opacity 0.4s" }}
           />
 
           {/* Integrated real-time product feature HUD floating tags */}
           <g 
             transform={isMobile ? "translate(300, 75)" : "translate(320, 110)"}
-            opacity={smoothProgress > 0.72 && smoothProgress < 0.90 ? 1 : 0}
+            opacity={smoothProgress > 0.72 && smoothProgress < (isMobile ? 0.87 : 0.89) ? 1 : 0}
             style={{ transition: "opacity 0.4s" }}
           >
             {/* GPS HUD */}
@@ -1116,34 +1165,44 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
           </g>
 
           {/* Floating wallet payout details - enlarged and positioned perfectly to prevent overlaps and clipping */}
-          <g 
-            transform="translate(210, 115)"
-            opacity={smoothProgress > 0.88 && smoothProgress < 0.95 ? 1 : 0}
-            style={{ transition: "opacity 0.4s" }}
-          >
-            {/* Wallet glassmorphic outline - expanded width and height */}
-            <rect width="170" height="100" fill="#e9eaec" fillOpacity="0.95" stroke="#2a2e34" strokeWidth="2" rx="12" filter="url(#shadow)" />
-            
-            {/* Header with clean top-rounded path */}
-            <path d="M 1,11 A 10,10 0 0,1 11,1 L 159,1 A 10,10 0 0,1 169,11 L 169,22 L 1,22 Z" fill="#ffb300" />
-            <text x="85" y="14" textAnchor="middle" fill="#2a2e34" className="font-mono text-[8px] font-black tracking-wider">COMMUTING PAYOUT</text>
+          {(() => {
+            const cardWidth = isMobile ? 190 : 170;
+            const innerWidth = cardWidth - 24;
+            return (
+              <g 
+                transform={isMobile ? "translate(175, 70) scale(0.82)" : "translate(210, 115)"}
+                opacity={smoothProgress > (isMobile ? 0.88 : 0.90) && smoothProgress < 0.96 ? 1 : 0}
+                style={{ transition: "opacity 0.4s" }}
+              >
+                {/* Wallet glassmorphic outline */}
+                <rect width={cardWidth} height="100" fill="#e9eaec" fillOpacity="0.95" stroke="#2a2e34" strokeWidth="2" rx="12" filter="url(#shadow)" />
+                
+                {/* Header with clean top-rounded path */}
+                <path d={`M 1,11 A 10,10 0 0,1 11,1 L ${cardWidth - 11},1 A 10,10 0 0,1 ${cardWidth - 1},11 L ${cardWidth - 1},22 L 1,22 Z`} fill="#ffb300" />
+                <text x={cardWidth / 2} y="14" textAnchor="middle" fill="#2a2e34" className="font-mono text-[8px] font-black tracking-wider">COMMUTING PAYOUT</text>
 
-            <g transform="translate(12, 0)">
-              {/* Row 1 */}
-              <text y="38" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">Aman (Saved 40%)</text>
-              <text x="146" y="38" textAnchor="end" fill="#2a2e34" className="font-mono text-[8.5px] font-black">₹340 SAVED</text>
-              <line x1="0" y1="46" x2="146" y2="46" stroke="#2a2e34" strokeWidth="0.75" opacity="0.1" />
+                <g transform="translate(12, 0)">
+                  {/* Row 1 */}
+                  <text y="38" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">
+                    {isMobile ? "Aman (Saved)" : "Aman (Saved 40%)"}
+                  </text>
+                  <text x={innerWidth} y="38" textAnchor="end" fill="#2a2e34" className="font-mono text-[8.5px] font-black">₹340 SAVED</text>
+                  <line x1="0" y1="46" x2={innerWidth} y2="46" stroke="#2a2e34" strokeWidth="0.75" opacity="0.1" />
 
-              {/* Row 2 */}
-              <text y="58" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">Rohit (Fuel Covered)</text>
-              <text x="146" y="58" textAnchor="end" fill="#ffb300" className="font-mono text-[8.5px] font-black" filter="url(#glow-yellow)">₹180 EARNED</text>
-              <line x1="0" y1="66" x2="146" y2="66" stroke="#2a2e34" strokeWidth="0.75" opacity="0.1" />
-              
-              {/* Row 3 */}
-              <text y="82" fill="#2a2e34" opacity="0.6" className="font-sans text-[7.5px] font-extrabold uppercase tracking-wide">Split Completed</text>
-              <text x="146" y="82" textAnchor="end" fill="#2a2e34" className="font-mono text-[8px] font-black fill-green-600">✓ SUCCESS</text>
-            </g>
-          </g>
+                  {/* Row 2 */}
+                  <text y="58" fill="#2a2e34" opacity="0.5" className="font-sans text-[8px] font-bold uppercase tracking-wider">
+                    {isMobile ? "Rohit (Earned)" : "Rohit (Fuel Covered)"}
+                  </text>
+                  <text x={innerWidth} y="58" textAnchor="end" fill="#ffb300" className="font-mono text-[8.5px] font-black" filter="url(#glow-yellow)">₹180 EARNED</text>
+                  <line x1="0" y1="66" x2={innerWidth} y2="66" stroke="#2a2e34" strokeWidth="0.75" opacity="0.1" />
+                  
+                  {/* Row 3 */}
+                  <text y="82" fill="#2a2e34" opacity="0.6" className="font-sans text-[7.5px] font-extrabold uppercase tracking-wide">Split Completed</text>
+                  <text x={innerWidth} y="82" textAnchor="end" fill="#2a2e34" className="font-mono text-[8px] font-black fill-green-600">✓ SUCCESS</text>
+                </g>
+              </g>
+            );
+          })()}
         </g>
       </svg>
     </div>

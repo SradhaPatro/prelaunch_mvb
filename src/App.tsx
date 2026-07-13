@@ -8,7 +8,8 @@ import {
   CircleDot,
   ArrowRight,
   ExternalLink,
-  Volume2
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import StoryVisualizer from "./components/StoryVisualizer";
 import FinalCinematic from "./components/FinalCinematic";
@@ -42,17 +43,17 @@ const narrativeTimeline = [
     text: "Share comfortable daily rides, save over 60% on fuel costs, and bypass daily booking hassles entirely."
   },
   {
-    range: [0.70, 0.88],
+    range: [0.70, 0.89],
     title: "REAL-TIME SAFETY",
     text: "Track your route live, enjoy automated wallet splits, and commute with secure emergency support built right in."
   },
   {
-    range: [0.88, 0.94],
+    range: [0.89, 0.95],
     title: "REACH WORK & SAVE",
     text: "Aman reaches his workspace on time, and Rohit covers his fuel expenses. It's safe, affordable, and incredibly easy."
   },
   {
-    range: [0.94, 0.97],
+    range: [0.95, 0.98],
     title: "JOIN THE NETWORK",
     text: "MoveBuddy is building India’s smartest, most reliable peer-to-peer office commuting network. Reserve your spot today."
   }
@@ -62,10 +63,18 @@ export default function App() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const storyContainerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [hasInteractedPopup, setHasInteractedPopup] = useState(false);
+  const [isMuted, setIsMuted] = useState(audio.getMutedState());
+
+  const handleToggleMute = () => {
+    const newState = audio.toggleMute();
+    setIsMuted(newState);
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -94,10 +103,22 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Handle local waitlist email and phone submission
+  // Handle local waitlist single email or phone submission
   const handleSubmitEmail = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes("@")) return;
+    const val = email.trim();
+    if (!val) return;
+    
+    const isEmail = val.includes("@") && val.includes(".");
+    const digits = val.replace(/[^0-9]/g, "");
+    const isPhone = digits.length >= 10;
+    
+    if (!isEmail && !isPhone) {
+      setErrorMsg("Please enter a valid email or phone number.");
+      return;
+    }
+    
+    setErrorMsg("");
     setIsSubmitted(true);
     audio.playPaymentDing();
     
@@ -105,6 +126,22 @@ export default function App() {
     setTimeout(() => {
       window.open("https://forms.gle/yNu2wQKQiTUi5fn17", "_blank");
     }, 1200);
+  };
+
+  // Skip directly to waitlist section
+  const handleSkipToContribute = () => {
+    setHasInteractedPopup(true);
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: "smooth"
+    });
+    audio.playTap();
+  };
+
+  // Continue reading/scrolling the story
+  const handleContinueStory = () => {
+    setHasInteractedPopup(true);
+    audio.playTap();
   };
 
   // Helper to copy contact email address
@@ -128,7 +165,7 @@ export default function App() {
     <div 
       ref={storyContainerRef} 
       className="w-full relative bg-[#e9eaec] select-none text-[#2a2e34] overflow-x-hidden font-sans"
-      style={{ minHeight: isMobile ? "760vh" : "950vh" }}
+      style={{ minHeight: isMobile ? "420vh" : "950vh" }}
     >
       
       {/* ==========================================
@@ -142,32 +179,117 @@ export default function App() {
           FLOATING BRANDING & SCENE PROGRESS (Z-50)
           ========================================== */}
       <header className="fixed top-3 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-50 flex items-center justify-between pointer-events-none">
-        <div className={`flex items-center w-full pointer-events-none gap-2 ${isMobile ? "justify-center" : "justify-between"}`}>
+        <div className="flex items-center w-full pointer-events-none justify-between gap-2">
           {/* Minimal branding */}
-          <div className="flex items-center gap-1.5 bg-[#e9eaec]/80 backdrop-blur-md px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
-            <CircleDot className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#ffb300]" />
-            <span className="font-display font-black text-[10px] sm:text-xs tracking-wider sm:tracking-widest text-[#2a2e34]">
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-[#e9eaec]/80 backdrop-blur-md px-2.5 py-1 sm:px-4 sm:py-2 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
+            <CircleDot className="w-3 h-3 sm:w-5 sm:h-5 text-[#ffb300]" />
+            <span className="font-display font-black text-[9px] sm:text-xs tracking-wider sm:tracking-widest text-[#2a2e34]">
               MOVEBUDDY<span className="text-[#ffb300]">.IO</span>
             </span>
           </div>
 
-          {/* Custom progress capsule - Keep on desktop/tablet, hide on mobile */}
-          {!isMobile && (
-            <div className="flex items-center gap-1.5 sm:gap-3 bg-[#e9eaec]/95 backdrop-blur-lg px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#2a2e34]/25 shadow-md pointer-events-auto">
-              <span className="font-mono text-[9px] sm:text-xs font-black text-[#2a2e34] tracking-wider mr-1 sm:mr-3">THE JOURNEY</span>
-              <div className="w-8 sm:w-24 h-[3.5px] sm:h-[4px] bg-[#2a2e34]/20 rounded-full overflow-hidden">
+          {/* Custom progress capsule - Optimized for both Desktop & Mobile */}
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <div className="flex items-center gap-1 sm:gap-3 bg-[#e9eaec]/95 backdrop-blur-lg px-2 sm:px-4 py-1 sm:py-2 rounded-full border border-[#2a2e34]/15 shadow-md">
+              <span className="font-mono text-[7px] sm:text-xs font-black text-[#2a2e34] tracking-wider mr-0.5 sm:mr-3 uppercase">
+                {isMobile ? "JOURNEY" : "THE JOURNEY"}
+              </span>
+              <div className="w-10 sm:w-24 h-[2px] sm:h-[4px] bg-[#2a2e34]/20 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-[#ffb300] transition-all duration-300"
                   style={{ width: `${scrollProgress * 100}%` }}
                 />
               </div>
-              <span className="font-mono text-[9px] sm:text-xs font-black text-[#ffb300]" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <span className="font-mono text-[8px] sm:text-xs font-black text-[#ffb300]" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {Math.round(scrollProgress * 100)}%
               </span>
             </div>
-          )}
+
+            {/* Floating Audio Toggle Badge */}
+            <button
+              onClick={handleToggleMute}
+              className="flex items-center justify-center bg-[#e9eaec]/95 hover:bg-[#2a2e34]/5 backdrop-blur-md p-1.5 sm:p-2 rounded-full border border-[#2a2e34]/15 shadow-md transition-all active:scale-90 cursor-pointer text-[#2a2e34]"
+              title={isMuted ? "Unmute Sound" : "Mute Sound"}
+            >
+              {isMuted ? (
+                <VolumeX className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-red-500/80" />
+              ) : (
+                <Volume2 className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-[#ffb300] animate-pulse" />
+              )}
+            </button>
+          </div>
         </div>
       </header>
+
+      {/* ==========================================
+          MID-SCROLL DIALOG POPUP (Choose to Scroll/Skip or Continue)
+          ========================================== */}
+      <AnimatePresence>
+        {scrollProgress >= 0.50 && scrollProgress < 0.94 && !hasInteractedPopup && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#121518]/70 backdrop-blur-md z-50 flex items-center justify-center p-4 pointer-events-auto"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-[#e9eaec] border border-[#2a2e34]/15 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative text-center pointer-events-auto"
+            >
+              {/* Soft decorative ring */}
+              <div className="mx-auto w-12 h-12 bg-[#ffb300]/10 rounded-full flex items-center justify-center mb-4">
+                <CircleDot className="w-6 h-6 text-[#ffb300] animate-pulse" />
+              </div>
+              
+              <h3 className="font-display font-black text-lg sm:text-xl text-[#2a2e34] tracking-wider mb-2">
+                CHOOSE YOUR JOURNEY
+              </h3>
+              
+              <p className="text-xs sm:text-sm text-[#2a2e34]/70 mb-6 leading-relaxed">
+                You can scroll through the interactive office commute story, or skip directly to secure your waitlist spot.
+              </p>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={handleSkipToContribute}
+                  className="w-full bg-[#2a2e34] hover:bg-[#1c1f24] text-[#ffb300] font-black tracking-widest text-[10px] sm:text-xs uppercase py-3 px-4 rounded-full transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Skip to Contribute</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                
+                <button
+                  onClick={handleContinueStory}
+                  className="w-full bg-transparent hover:bg-[#2a2e34]/5 text-[#2a2e34] font-black border-2 border-[#2a2e34]/25 hover:border-[#2a2e34] tracking-widest text-[10px] sm:text-xs uppercase py-2.5 px-4 rounded-full transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Continue Story</span>
+                </button>
+              </div>
+
+              {/* Quick Sound Toggle inside popup */}
+              <button 
+                onClick={handleToggleMute}
+                className="mt-5 inline-flex items-center gap-1.5 text-[9px] sm:text-xs font-mono font-black text-[#2a2e34]/65 hover:text-[#2a2e34] cursor-pointer transition-colors"
+              >
+                {isMuted ? (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-red-500" />
+                    <span>SOUND OFF (TAP TO UNMUTE)</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-[#ffb300] animate-bounce" />
+                    <span>SOUND ON 🔊</span>
+                  </>
+                )}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ==========================================
           CINEMATIC FLOATING SCENE NARRATIVE (Z-40)
@@ -228,6 +350,7 @@ export default function App() {
             setEmail={setEmail}
             phone={phone}
             setPhone={setPhone}
+            errorMsg={errorMsg}
             isSubmitted={isSubmitted}
             handleSubmitEmail={handleSubmitEmail}
             handleCopyEmail={handleCopyEmail}
