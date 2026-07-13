@@ -49,6 +49,24 @@ const keyframes: CameraKeyframe[] = [
   { p: 1.00, x: 400,  y: -400, w: 1200, h: 900 }   // 7. Pan up into final sky call-to-action
 ];
 
+// Refined, high-focus camera coordinates specifically designed for vertical mobile screens
+const mobileKeyframes: CameraKeyframe[] = [
+  { p: 0.00, x: 400,  y: 300,  w: 1200, h: 900 },  // 0. High altitude India Map Network
+  { p: 0.12, x: 180,  y: 170,  w: 260,  h: 195 },  // 1. Zoom into Aman's bedroom (sleeping commuter)
+  { p: 0.22, x: 180,  y: 170,  w: 260,  h: 195 },  // 1. Aman waking up, checking options
+  { p: 0.28, x: 210,  y: 100,  w: 360,  h: 270 },  // 1. Bedside phone & surge warning panel
+  { p: 0.38, x: 210,  y: 100,  w: 360,  h: 270 },  // 1. Bedside phone & surge warning panel
+  { p: 0.45, x: 1100, y: 90,   w: 410,  h: 307.5 },// 2. Rohit's garage, starting bike, match popup
+  { p: 0.58, x: 1100, y: 90,   w: 410,  h: 307.5 },// 2. Rohit's garage, match popup
+  { p: 0.65, x: 700,  y: 640,  w: 380,  h: 285 },  // 3. Street level meeting (Aman & Rohit meet)
+  { p: 0.74, x: 700,  y: 640,  w: 380,  h: 285 },  // 3. Verification/badges
+  { p: 0.82, x: 700,  y: 1100, w: 400,  h: 300 },  // 4. Highway active ride & HUD tags
+  { p: 0.90, x: 700,  y: 1100, w: 400,  h: 300 },  // 4. Highway active ride & HUD tags
+  { p: 0.94, x: 130,  y: 1110, w: 280,  h: 210 },  // 5. Office destination park arrival
+  { p: 0.97, x: 400,  y: 300,  w: 1200, h: 900 },  // 6. Seamless zoom back out to India Network
+  { p: 1.00, x: 400,  y: -400, w: 1200, h: 900 }   // 7. Pan up into final sky
+];
+
 export default function StoryVisualizer({ progress, activeSceneOverride }: StoryVisualizerProps) {
   const [smoothProgress, setSmoothProgress] = useState(0);
   const lastTriggeredScene = useRef<number | null>(null);
@@ -79,15 +97,16 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
   // Interpolated Viewbox Camera Calculation
   const getInterpolatedViewBox = () => {
     const p = smoothProgress;
+    const activeKeyframes = isMobile ? mobileKeyframes : keyframes;
     
     // Find enclosing keyframes
-    let left = keyframes[0];
-    let right = keyframes[keyframes.length - 1];
+    let left = activeKeyframes[0];
+    let right = activeKeyframes[activeKeyframes.length - 1];
     
-    for (let i = 0; i < keyframes.length - 1; i++) {
-      if (p >= keyframes[i].p && p <= keyframes[i + 1].p) {
-        left = keyframes[i];
-        right = keyframes[i + 1];
+    for (let i = 0; i < activeKeyframes.length - 1; i++) {
+      if (p >= activeKeyframes[i].p && p <= activeKeyframes[i + 1].p) {
+        left = activeKeyframes[i];
+        right = activeKeyframes[i + 1];
         break;
       }
     }
@@ -103,23 +122,30 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
     let w = left.w + (right.w - left.w) * t;
     let h = left.h + (right.h - left.h) * t;
     
-    if (isMobile) {
-      const isFocusedScene = p >= 0.05 && p <= 0.95;
-      const zoom = isFocusedScene ? 0.62 : 0.82; // Zoom in closer on mobile
+    // Professional Google-tier design layout fix for portrait and narrow screens (mobile):
+    // Dynamically expand the viewBox height to match the window's exact tall aspect ratio
+    // so there is zero empty space/letterboxing, and lift the content vertically upwards so
+    // it sits beautifully in the upper-middle region, leaving plenty of room for the text overlay.
+    if (typeof window !== "undefined") {
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+      const containerRatio = winW / winH;
+      const baseRatio = w / h; // e.g., 4/3 = 1.333
       
-      const origW = w;
-      const origH = h;
-      
-      w = origW * zoom;
-      h = origH * zoom * 1.35; // Aspect ratio is vertical to fit mobile screens beautifully
-      
-      const centerX = x + origW / 2;
-      const centerY = y + origH / 2;
-      
-      x = centerX - w / 2;
-      // Shift camera downwards (add to y) so drawings rise up visually below top compact navbar
-      const mobileYOffset = isFocusedScene ? h * 0.18 : 0;
-      y = (centerY - h / 2) + mobileYOffset;
+      if (containerRatio < baseRatio) {
+        const originalH = h;
+        const newH = w / containerRatio; // calculate matching tall height
+        
+        const centerY = y + originalH / 2;
+        
+        // Only offset the drawings upward during the interactive storytelling scenes.
+        // During the opening and closing overview scenes, center them cleanly.
+        const isMiddleScene = p >= 0.10 && p <= 0.94;
+        const mobileYOffset = isMiddleScene ? newH * 0.18 : 0; // shift viewBox down, moving drawing UP
+        
+        y = (centerY - newH / 2) + mobileYOffset;
+        h = newH;
+      }
     }
     
     return `${x} ${y} ${w} ${h}`;
@@ -542,19 +568,19 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
 
           {/* Subtle curved leader line connecting phone on table to floating surge HUD */}
           <path
-            d="M 320,125 Q 355,110 390,130"
+            d={isMobile ? "M 320,125 L 320,115" : "M 320,125 Q 335,120 350,115"}
             fill="none"
             stroke="#ff4444"
             strokeWidth={isMobile ? "2" : "1.5"}
             strokeDasharray="4,4"
-            opacity={smoothProgress >= 0.12 && smoothProgress < 0.32 ? 0.65 : 0}
+            opacity={smoothProgress >= 0.24 && smoothProgress < 0.42 ? 0.65 : 0}
             style={{ transition: "opacity 0.4s ease-out" }}
           />
 
-          {/* Floating glowing Phone Surges panel - visible at 14% scroll progress */}
+          {/* Floating glowing Phone Surges panel - visible at 24% scroll progress after yawn */}
           <g 
-            transform="translate(390, 95)" 
-            opacity={smoothProgress >= 0.12 && smoothProgress < 0.32 ? 1 : 0}
+            transform={`translate(${isMobile ? 245 : 285}, 15)`} 
+            opacity={smoothProgress >= 0.24 && smoothProgress < 0.42 ? 1 : 0}
             style={{ transition: "opacity 0.4s ease-out" }}
           >
             {/* Glassmorphic card frame - widened to 170 to fully prevent clipping and overlapping */}
@@ -997,7 +1023,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
 
           {/* Integrated real-time product feature HUD floating tags */}
           <g 
-            transform="translate(320, 110)"
+            transform={isMobile ? "translate(300, 75)" : "translate(320, 110)"}
             opacity={smoothProgress > 0.72 && smoothProgress < 0.90 ? 1 : 0}
             style={{ transition: "opacity 0.4s" }}
           >
@@ -1010,7 +1036,7 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             </g>
 
             {/* SOS Safety Shield */}
-            <g transform="translate(140, 0)" filter="url(#shadow)">
+            <g transform={isMobile ? "translate(0, 48)" : "translate(140, 0)"} filter="url(#shadow)">
               <rect width="130" height="42" fill="#ffb300" rx="8" />
               <path d="M 12,21 L 18,27 L 26,15" stroke="#2a2e34" strokeWidth="2" fill="none" />
               <text x="36" y="18" fill="#2a2e34" className="font-mono text-[7px] font-black tracking-wider">SECURE SHIELD ACTIVE</text>

@@ -11,7 +11,6 @@ import {
   Volume2
 } from "lucide-react";
 import StoryVisualizer from "./components/StoryVisualizer";
-import SoundControl from "./components/SoundControl";
 import FinalCinematic from "./components/FinalCinematic";
 import { audio } from "./utils/audio";
 
@@ -19,43 +18,43 @@ import { audio } from "./utils/audio";
 const narrativeTimeline = [
   {
     range: [0.00, 0.10],
-    title: "WHAT IF EVERY COMMUTE FELT EFFORTLESS?",
-    text: "Millions of professionals commute alone daily through heavy metropolitan traffic, surge pricing, and sudden cancellations. What if there was a smarter, connected way?"
+    title: "A BETTER WAY TO COMMUTE",
+    text: "Every day, millions of people travel to work alone in heavy traffic, paying high fares for cancelled rides. We are changing that."
   },
   {
     range: [0.10, 0.28],
-    title: "EVERY MORNING BEGINS THE SAME.",
-    text: "The alarm rings. Surge rates spike up to 2x. Drivers cancel in your critical hour. The stress starts before you even step outside your apartment."
+    title: "THE MORNING STRUGGLE",
+    text: "High surge prices, sudden cancellations, and stressful bookings make mornings difficult. Your day shouldn't start this way."
   },
   {
     range: [0.28, 0.44],
-    title: "SOMEONE SHARES YOUR EXACT ROUTE.",
-    text: "MoveBuddy's smart matching engine works silently in the background, linking co-commuters sharing identical pathways and coordinates in real-time."
+    title: "SAME DIRECTION, SAME TIME",
+    text: "MoveBuddy instantly matches co-commuters heading to the same office zones or tech parks at the exact same hour."
   },
   {
     range: [0.44, 0.58],
-    title: "VERIFICATION IS INSTANT. SAFETY IS MUTUAL.",
-    text: "Two-sided identity checks and digital security PIN keys ensure every host and guest rides in complete, trusted comfort."
+    title: "VERIFIED & SECURE",
+    text: "We verify company emails and identity badges so both hosts and guests can ride in complete comfort and trust."
   },
   {
     range: [0.58, 0.70],
-    title: "ONE ROUTE. TWO PEOPLE. ALGORITHM-BASED CO-COMMUTING.",
-    text: "Enjoy comfortable daily rides, reduce carbon emissions by over 60%, and reclaim your mornings. No repetitive bookings, no negotiation."
+    title: "ONE ROUTE. TWO PEOPLE.",
+    text: "Share comfortable daily rides, save over 60% on fuel costs, and bypass daily booking hassles entirely."
   },
   {
     range: [0.70, 0.88],
-    title: "INTEGRATED DEFENSE & SAFETY.",
-    text: "Track matches live via 24/7 GPS safety telemetry, instant auto-split wallets, and single-tap SOS guard alerts to safeguard your travel experience."
+    title: "REAL-TIME SAFETY",
+    text: "Track your route live, enjoy automated wallet splits, and commute with secure emergency support built right in."
   },
   {
     range: [0.88, 0.94],
-    title: "A SMARTER RECURRING NETWORK.",
-    text: "Aman reaches his workspace tech park. Rohit covers his fuel expenses. One seamless co-commute covers and saves up to 40% on daily transit fees."
+    title: "REACH WORK & SAVE",
+    text: "Aman reaches his workspace on time, and Rohit covers his fuel expenses. It's safe, affordable, and incredibly easy."
   },
   {
     range: [0.94, 0.97],
-    title: "MILLIONS TRAVEL ALONE. THEY DON'T HAVE TO.",
-    text: "MoveBuddy connects thousands of recurring routes simultaneously. We are shaping India's smartest, greenest peer-to-peer mobility highway."
+    title: "JOIN THE NETWORK",
+    text: "MoveBuddy is building India’s smartest, most reliable peer-to-peer office commuting network. Reserve your spot today."
   }
 ];
 
@@ -140,41 +139,40 @@ export default function App() {
       </div>
 
       {/* ==========================================
-          FLOATING BRANDING & SOUND TABS (Z-50)
+          FLOATING BRANDING & SCENE PROGRESS (Z-50)
           ========================================== */}
-      <header className="fixed top-5 left-5 right-5 sm:top-6 sm:left-6 sm:right-6 z-50 flex items-center justify-between pointer-events-none gap-2">
-        {/* Minimal branding */}
-        <div className="flex items-center gap-1.5 bg-[#e9eaec]/70 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
-          <CircleDot className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#ffb300]" />
-          <span className="font-display font-black text-[9px] sm:text-xs tracking-wider sm:tracking-widest text-[#2a2e34]">
-            MOVEBUDDY<span className="text-[#ffb300]">.IO</span>
-          </span>
-        </div>
-
-        {/* Custom progress capsule - High-contrast & always visible on mobile/desktop */}
-        <div className="flex items-center gap-1.5 sm:gap-3 bg-[#e9eaec]/95 backdrop-blur-lg px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#2a2e34]/25 shadow-md pointer-events-auto">
-          <span className="font-mono text-[9px] sm:text-xs font-black text-[#2a2e34] tracking-wider mr-1 sm:mr-3">THE JOURNEY</span>
-          <div className="w-8 sm:w-24 h-[3.5px] sm:h-[4px] bg-[#2a2e34]/20 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-[#ffb300] transition-all duration-300"
-              style={{ width: `${scrollProgress * 100}%` }}
-            />
+      <header className="fixed top-3 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-50 flex items-center justify-between pointer-events-none">
+        <div className={`flex items-center w-full pointer-events-none gap-2 ${isMobile ? "justify-center" : "justify-between"}`}>
+          {/* Minimal branding */}
+          <div className="flex items-center gap-1.5 bg-[#e9eaec]/80 backdrop-blur-md px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
+            <CircleDot className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#ffb300]" />
+            <span className="font-display font-black text-[10px] sm:text-xs tracking-wider sm:tracking-widest text-[#2a2e34]">
+              MOVEBUDDY<span className="text-[#ffb300]">.IO</span>
+            </span>
           </div>
-          <span className="font-mono text-[9px] sm:text-xs font-black text-[#ffb300]" style={{ fontVariantNumeric: "tabular-nums" }}>
-            {Math.round(scrollProgress * 100)}%
-          </span>
-        </div>
 
-        {/* Sound toggle container (receives pointer clicks) */}
-        <div className="pointer-events-auto">
-          <SoundControl />
+          {/* Custom progress capsule - Keep on desktop/tablet, hide on mobile */}
+          {!isMobile && (
+            <div className="flex items-center gap-1.5 sm:gap-3 bg-[#e9eaec]/95 backdrop-blur-lg px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#2a2e34]/25 shadow-md pointer-events-auto">
+              <span className="font-mono text-[9px] sm:text-xs font-black text-[#2a2e34] tracking-wider mr-1 sm:mr-3">THE JOURNEY</span>
+              <div className="w-8 sm:w-24 h-[3.5px] sm:h-[4px] bg-[#2a2e34]/20 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#ffb300] transition-all duration-300"
+                  style={{ width: `${scrollProgress * 100}%` }}
+                />
+              </div>
+              <span className="font-mono text-[9px] sm:text-xs font-black text-[#ffb300]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {Math.round(scrollProgress * 100)}%
+              </span>
+            </div>
+          )}
         </div>
       </header>
 
       {/* ==========================================
           CINEMATIC FLOATING SCENE NARRATIVE (Z-40)
           ========================================== */}
-      <div className="fixed bottom-5 left-5 right-5 sm:bottom-12 sm:left-8 sm:right-8 z-40 pointer-events-none flex flex-col items-start justify-end">
+      <div className="fixed bottom-4 left-4 right-4 sm:bottom-12 sm:left-8 sm:right-8 z-40 pointer-events-none flex flex-col items-center sm:items-start justify-end">
         <AnimatePresence mode="wait">
           {activeNarrative && scrollProgress < 0.95 && (
             <motion.div
@@ -183,7 +181,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full max-w-2xl bg-[#e9eaec]/85 backdrop-blur-lg border border-[#2a2e34]/15 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl pointer-events-auto shadow-2xl space-y-2.5 sm:space-y-4"
+              className="w-full max-w-xl sm:max-w-2xl bg-[#e9eaec]/85 backdrop-blur-lg border border-[#2a2e34]/15 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl pointer-events-auto shadow-2xl space-y-2 sm:space-y-4"
             >
               {/* Scene Indicator */}
               <div className="flex items-center gap-2">
@@ -196,21 +194,21 @@ export default function App() {
               {/* Dynamic Title */}
               <h1 
                 className="font-display font-black text-[#2a2e34] leading-tight tracking-tight uppercase"
-                style={{ fontSize: "clamp(18px, 5.5vw, 36px)" }}
+                style={{ fontSize: "clamp(16px, 5vw, 36px)" }}
               >
                 {activeNarrative.title}
               </h1>
 
               {/* Dynamic Subtext */}
               <p 
-                className="font-sans text-[14px] sm:text-[16px] text-[#2a2e34]/85 leading-[1.7] max-w-full sm:max-w-[85%] font-medium"
-                style={{ letterSpacing: "0.2px" }}
+                className="font-sans text-[13px] sm:text-[16px] text-[#2a2e34]/85 leading-relaxed sm:leading-[1.7] max-w-full sm:max-w-[85%] font-medium"
+                style={{ letterSpacing: "0.1px" }}
               >
                 {activeNarrative.text}
               </p>
 
               {/* Interactive micro prompt to scroll - high contrast and readability */}
-              <div className="flex items-center gap-1.5 pt-3 sm:pt-4 text-[10px] sm:text-xs font-mono font-black text-[#2a2e34]/80 uppercase tracking-widest">
+              <div className="flex items-center gap-1.5 pt-2 sm:pt-4 text-[9px] sm:text-xs font-mono font-black text-[#2a2e34]/80 uppercase tracking-widest">
                 <span>SCROLL TO CONTINUE THE STORY</span>
                 <span className="text-[#ffb300] animate-bounce text-xs sm:text-sm font-black">↓</span>
               </div>

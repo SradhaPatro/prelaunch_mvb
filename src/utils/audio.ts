@@ -167,80 +167,18 @@ class MoveBuddyAudioEngine {
   }
 
   public startEngine() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-
-    try {
-      this.stopEngine();
-
-      this.engineOsc1 = this.ctx.createOscillator();
-      this.engineOsc2 = this.ctx.createOscillator();
-      this.engineFilter = this.ctx.createBiquadFilter();
-      this.engineGain = this.ctx.createGain();
-
-      // Bike engine is double sawtooth/triangle for a gravelly rumble
-      this.engineOsc1.type = "sawtooth";
-      this.engineOsc1.frequency.setValueAtTime(50, this.ctx.currentTime); // Low idle RPM
-
-      this.engineOsc2.type = "triangle";
-      this.engineOsc2.frequency.setValueAtTime(50.5, this.ctx.currentTime);
-
-      this.engineFilter.type = "lowpass";
-      this.engineFilter.frequency.setValueAtTime(140, this.ctx.currentTime);
-
-      this.engineGain.gain.setValueAtTime(0.08, this.ctx.currentTime);
-
-      this.engineOsc1.connect(this.engineFilter);
-      this.engineOsc2.connect(this.engineFilter);
-      this.engineFilter.connect(this.engineGain);
-      this.engineGain.connect(this.ctx.destination);
-
-      this.engineOsc1.start();
-      this.engineOsc2.start();
-
-    } catch (e) {
-      console.error("Error starting engine sound:", e);
-    }
+    // Engine sound removed as per user requirements
   }
 
   /**
    * Updates bike engine sound based on speed ratio (0 to 1)
    */
   public updateEngineRPM(speedRatio: number) {
-    if (this.isMuted || !this.ctx || !this.engineOsc1 || !this.engineOsc2 || !this.engineFilter) return;
-
-    try {
-      const baseFreq = 50 + speedRatio * 85; // Accelerate pitch up to 135Hz
-      const filterFreq = 140 + speedRatio * 200; // Open up filter for buzzier sound
-
-      this.engineOsc1.frequency.setTargetAtTime(baseFreq, this.ctx.currentTime, 0.1);
-      this.engineOsc2.frequency.setTargetAtTime(baseFreq + 0.6, this.ctx.currentTime, 0.1);
-      this.engineFilter.frequency.setTargetAtTime(filterFreq, this.ctx.currentTime, 0.1);
-
-      // Volume increases slightly with speed
-      if (this.engineGain) {
-        const volume = 0.08 + speedRatio * 0.07;
-        this.engineGain.gain.setTargetAtTime(volume, this.ctx.currentTime, 0.15);
-      }
-    } catch (e) {
-      // Fail-safe
-    }
+    // Engine sound removed as per user requirements
   }
 
   public stopEngine() {
-    try {
-      if (this.engineOsc1) {
-        this.engineOsc1.stop();
-        this.engineOsc1 = null;
-      }
-      if (this.engineOsc2) {
-        this.engineOsc2.stop();
-        this.engineOsc2 = null;
-      }
-    } catch (e) {
-      // Fail-safe
-    }
+    // Engine sound removed as per user requirements
   }
 
   public playPaymentDing() {
