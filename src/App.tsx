@@ -94,7 +94,13 @@ export default function App() {
       const totalScrollable = containerHeight - windowHeight;
       const scrolled = -rect.top;
       
-      const progress = Math.max(0, Math.min(1, scrolled / totalScrollable));
+      let progress = 0;
+      if (totalScrollable > 0) {
+        progress = Math.max(0, Math.min(1, scrolled / totalScrollable));
+      }
+      if (isNaN(progress)) {
+        progress = 0;
+      }
       setScrollProgress(progress);
     };
 
@@ -360,6 +366,37 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+
+      {/* ==========================================
+          FLOATING WHATSAPP BUTTON (Z-[999])
+          ========================================== */}
+      <motion.a
+        href="https://chat.whatsapp.com/CyEU0UqMp0H4FCwh3M68lC?s=sw&p=a&ilr=0&amv=0"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Join MoveBuddy WhatsApp Community"
+        className="fixed bottom-6 right-6 w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-[0_8px_24px_rgba(37,211,102,0.4)] z-[999] group transition-all duration-300 pointer-events-auto"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 1, type: "spring", stiffness: 260, damping: 20 }}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
+      >
+        {/* WhatsApp Official SVG Icon */}
+        <svg
+          viewBox="0 0 24 24"
+          className="w-7 h-7 sm:w-8 sm:h-8 fill-current transition-transform duration-300 group-hover:rotate-12"
+        >
+          <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.758.459 3.473 1.332 4.988l-1.417 5.176 5.297-1.391c1.464.797 3.111 1.217 4.776 1.217 5.506 0 9.988-4.482 9.988-9.988S17.518 2 12.012 2zm6.012 14.195c-.247.695-1.42 1.272-1.954 1.349-.49.071-.976.275-3.136-.612-2.756-1.129-4.512-3.931-4.646-4.116-.135-.185-1.097-1.458-1.097-2.782s.686-1.973.93-2.22c.244-.247.534-.309.712-.309.18 0 .359.002.514.009.16.007.375-.061.587.45.218.528.745 1.815.809 1.947.065.132.108.286.02.463-.087.177-.132.285-.262.438-.13.153-.274.341-.392.458-.132.13-.27.271-.116.536.153.265.681 1.121 1.458 1.812.999.889 1.839 1.163 2.102 1.295.263.132.417.11.572-.069.155-.18.665-.776.843-1.039.177-.263.356-.22.599-.13.243.09 1.545.728 1.809.86.265.132.441.198.508.312.066.114.066.662-.181 1.357z" />
+        </svg>
+
+        {/* Desktop Tooltip */}
+        <span className="absolute right-full mr-3 px-3 py-1.5 bg-[#2a2e34] text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-md hidden sm:block">
+          Join our WhatsApp Community
+          {/* Tooltip Arrow */}
+          <span className="absolute top-1/2 -translate-y-1/2 left-full w-0 h-0 border-4 border-transparent border-l-[#2a2e34]" />
+        </span>
+      </motion.a>
 
     </div>
   );

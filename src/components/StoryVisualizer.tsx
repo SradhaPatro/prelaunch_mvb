@@ -36,8 +36,8 @@ interface CameraKeyframe {
 // Seamless Camera coordinates mapping one continuous vector universe
 const keyframes: CameraKeyframe[] = [
   { p: 0.00, x: 400,  y: 300,  w: 1200, h: 900 },  // 0. High altitude India Map Network
-  { p: 0.12, x: 150,  y: 150,  w: 500,  h: 375 },  // 1. Zoom into Aman's apartment window
-  { p: 0.28, x: 150,  y: 150,  w: 500,  h: 375 },  // 1. Waking up / Cab surges
+  { p: 0.12, x: 150,  y: 105,  w: 500,  h: 375 },  // 1. Zoom into Aman's apartment window
+  { p: 0.28, x: 150,  y: 105,  w: 500,  h: 375 },  // 1. Waking up / Cab surges
   { p: 0.42, x: 1150, y: 150,  w: 500,  h: 375 },  // 2. Fly across city skyline to Rohit's garage
   { p: 0.58, x: 1150, y: 150,  w: 500,  h: 375 },  // 2. Rohit's bike starting / headlight glows
   { p: 0.68, x: 650,  y: 650,  w: 600,  h: 450 },  // 3. Pan down to street level meeting
@@ -87,14 +87,18 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
     let rAF: number;
     const update = () => {
       setSmoothProgress((prev) => {
-        let target = progress;
+        let cleanProgress = progress;
+        if (typeof cleanProgress !== "number" || isNaN(cleanProgress)) {
+          cleanProgress = 0;
+        }
+        let target = cleanProgress;
         if (isMobile) {
           const steps = [0.0, 0.20, 0.35, 0.52, 0.68, 0.80, 0.89, 0.95, 1.0];
           for (let i = 0; i < steps.length - 1; i++) {
             const s = steps[i];
             const e = steps[i + 1];
-            if (progress >= s && progress <= e) {
-              const t = (progress - s) / (e - s);
+            if (cleanProgress >= s && cleanProgress <= e) {
+              const t = (cleanProgress - s) / (e - s);
               // Linger around the scene keyframes (flatten slope near boundaries)
               const tWarped = t - 0.15 * Math.sin(2 * Math.PI * t);
               target = s + (e - s) * Math.max(0, Math.min(1, tWarped));
@@ -102,9 +106,11 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             }
           }
         }
-        const diff = target - prev;
-        if (Math.abs(diff) < 0.0001) return target;
-        return prev + diff * (isMobile ? 0.06 : 0.08); // slightly smoother damping on mobile
+        const cleanPrev = typeof prev !== "number" || isNaN(prev) ? 0 : prev;
+        const diff = target - cleanPrev;
+        if (isNaN(diff) || Math.abs(diff) < 0.0001) return target;
+        const next = cleanPrev + diff * (isMobile ? 0.06 : 0.08); // slightly smoother damping on mobile
+        return isNaN(next) ? target : next;
       });
       rAF = requestAnimationFrame(update);
     };
@@ -1166,11 +1172,11 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
 
           {/* Floating wallet payout details - enlarged and positioned perfectly to prevent overlaps and clipping */}
           {(() => {
-            const cardWidth = isMobile ? 190 : 170;
+            const cardWidth = isMobile ? 190 : 215;
             const innerWidth = cardWidth - 24;
             return (
               <g 
-                transform={isMobile ? "translate(175, 70) scale(0.82)" : "translate(210, 115)"}
+                transform={isMobile ? "translate(175, 70) scale(0.82)" : "translate(170, 115)"}
                 opacity={smoothProgress > (isMobile ? 0.88 : 0.90) && smoothProgress < 0.96 ? 1 : 0}
                 style={{ transition: "opacity 0.4s" }}
               >

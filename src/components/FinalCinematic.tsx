@@ -532,12 +532,12 @@ export default function FinalCinematic({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}
-              className="absolute inset-0 flex flex-col items-center justify-start p-4 sm:p-6 bg-[#e9eaec] overflow-y-auto pt-20 sm:pt-28 md:pt-36 pb-12"
+              className="absolute inset-0 flex flex-col items-center justify-start md:justify-center p-4 sm:p-6 bg-[#e9eaec] overflow-y-auto pt-16 sm:pt-24 md:pt-8 pb-12"
             >
               <div className="w-full max-w-3xl text-center flex flex-col items-center justify-start space-y-3 sm:space-y-4 py-2 sm:py-4 md:py-6 relative">
                 
                 {/* 1. Centered MoveBuddy Logo assembling & breathing */}
-                <div className="relative w-full max-w-xs h-16 sm:h-28 flex items-center justify-center mb-0.5 sm:mb-1">
+                <div className="relative w-full max-w-xs h-16 sm:h-24 flex items-center justify-center mb-0.5 sm:mb-1">
                   
                   {/* Breathing and assembling logo */}
                   <motion.div
@@ -559,23 +559,7 @@ export default function FinalCinematic({
                     }}
                     className="relative z-10 flex items-center justify-center"
                   >
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#2a2e34] rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-2xl border border-white/10 relative">
-                      {/* Assembling path effect around the logo box */}
-                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 64 64">
-                        <motion.rect
-                          x="2"
-                          y="2"
-                          width="60"
-                          height="60"
-                          rx="21"
-                          fill="none"
-                          stroke="#ffb300"
-                          strokeWidth="2"
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          transition={{ duration: 2.2, ease: "easeInOut", delay: 0.4 }}
-                        />
-                      </svg>
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#2a2e34] rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-2xl border-2 border-[#ffb300] relative">
                       <CircleDot className="w-6 h-6 sm:w-8 sm:h-8 text-[#ffb300]" />
                     </div>
                   </motion.div>
@@ -643,7 +627,7 @@ export default function FinalCinematic({
                           type="submit"
                           className="w-full bg-[#ffb300] hover:bg-[#ffb300]/95 text-[#2a2e34] text-xs font-black py-2.5 sm:py-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          Join the Waitlist <ArrowRight className="w-3.5 h-3.5" />
+                          Be a part of journey <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </form>
