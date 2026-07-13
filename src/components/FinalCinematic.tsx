@@ -884,7 +884,7 @@ export default function FinalCinematic({
                           }}
                           className="px-5 py-2.5 rounded-full bg-[#ffb300] hover:bg-[#ffb300]/95 text-[#2a2e34] font-mono text-[9px] font-black tracking-widest uppercase transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
                         >
-                          Go to Survey Form <ExternalLink className="w-3 h-3" />
+                          Be a part of Journey <ExternalLink className="w-3 h-3" />
                         </button>
 
                         <button 
