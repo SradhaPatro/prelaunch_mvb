@@ -85,23 +85,31 @@ export default function App() {
 
   // Track global viewport scroll progress relative to the massive container
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      if (!storyContainerRef.current) return;
-      const rect = storyContainerRef.current.getBoundingClientRect();
-      const containerHeight = rect.height;
-      const windowHeight = window.innerHeight;
-      
-      const totalScrollable = containerHeight - windowHeight;
-      const scrolled = -rect.top;
-      
-      let progress = 0;
-      if (totalScrollable > 0) {
-        progress = Math.max(0, Math.min(1, scrolled / totalScrollable));
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (storyContainerRef.current) {
+            const rect = storyContainerRef.current.getBoundingClientRect();
+            const containerHeight = rect.height;
+            const windowHeight = window.innerHeight;
+            
+            const totalScrollable = containerHeight - windowHeight;
+            const scrolled = -rect.top;
+            
+            let progress = 0;
+            if (totalScrollable > 0) {
+              progress = Math.max(0, Math.min(1, scrolled / totalScrollable));
+            }
+            if (isNaN(progress)) {
+              progress = 0;
+            }
+            setScrollProgress(progress);
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
-      if (isNaN(progress)) {
-        progress = 0;
-      }
-      setScrollProgress(progress);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });

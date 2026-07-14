@@ -74,6 +74,10 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
   const lastTriggeredScene = useRef<number | null>(null);
   const playedWakeUp = useRef(false);
   const [isMobile, setIsMobile] = useState(false);
+  
+  const targetProgressRef = useRef(progress);
+  const smoothProgressRef = useRef(0);
+  const animatingRef = useRef(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -84,10 +88,12 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
 
   // Buttery-smooth inertial scroll interpolation (120FPS glide feeling)
   useEffect(() => {
-    let rAF: number;
-    const update = () => {
-      setSmoothProgress((prev) => {
-        let cleanProgress = progress;
+    targetProgressRef.current = progress;
+    
+    if (!animatingRef.current) {
+      let rAF: number;
+      const update = () => {
+        let cleanProgress = targetProgressRef.current;
         if (typeof cleanProgress !== "number" || isNaN(cleanProgress)) {
           cleanProgress = 0;
         }
@@ -106,16 +112,36 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
             }
           }
         }
-        const cleanPrev = typeof prev !== "number" || isNaN(prev) ? 0 : prev;
-        const diff = target - cleanPrev;
-        if (isNaN(diff) || Math.abs(diff) < 0.0001) return target;
-        const next = cleanPrev + diff * (isMobile ? 0.06 : 0.08); // slightly smoother damping on mobile
-        return isNaN(next) ? target : next;
-      });
+        
+        const prev = smoothProgressRef.current;
+        const diff = target - prev;
+        
+        if (isNaN(diff) || Math.abs(diff) < 0.0001) {
+          smoothProgressRef.current = target;
+          setSmoothProgress(target);
+          animatingRef.current = false;
+          return;
+        }
+        
+        const next = prev + diff * (isMobile ? 0.06 : 0.08);
+        const finalNext = isNaN(next) ? target : next;
+        
+        smoothProgressRef.current = finalNext;
+        setSmoothProgress(finalNext);
+        
+        if (Math.abs(target - finalNext) >= 0.0001) {
+          rAF = requestAnimationFrame(update);
+        } else {
+          animatingRef.current = false;
+        }
+      };
+      animatingRef.current = true;
       rAF = requestAnimationFrame(update);
-    };
-    rAF = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(rAF);
+      return () => {
+        cancelAnimationFrame(rAF);
+        animatingRef.current = false;
+      };
+    }
   }, [progress, isMobile]);
 
   // Interpolated Viewbox Camera Calculation
@@ -328,27 +354,54 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
               60% { transform: translate(-22px, 4px) scale(1.4) rotate(-30deg); opacity: 0.15; }
               100% { transform: translate(-45px, 8px) scale(2.2) rotate(-60deg); opacity: 0; }
             }
+            @keyframes phone-vibrate {
+              0% { transform: translate(320px, 125px) translate(0, 0); }
+              25% { transform: translate(320px, 125px) translate(-1.5px, 1px); }
+              50% { transform: translate(320px, 125px) translate(1.5px, -1px); }
+              75% { transform: translate(320px, 125px) translate(-1px, -1px); }
+              100% { transform: translate(320px, 125px) translate(1px, 1px); }
+            }
+            @keyframes bike-engine-vibrate {
+              0% { transform: translate(160px, 130px) translate(0, 0); }
+              50% { transform: translate(160px, 130px) translate(0, -1.5px); }
+              100% { transform: translate(160px, 130px) translate(0, 1.5px); }
+            }
             .bike-wheel-spin {
               animation: bike-spin 0.35s linear infinite;
               transform-origin: center;
+              will-change: transform;
             }
             .exhaust-puff-1 {
               animation: exhaust-puff-1 1s ease-out infinite;
               transform-origin: center;
+              will-change: transform;
             }
             .exhaust-puff-2 {
               animation: exhaust-puff-2 1.4s ease-out infinite;
               animation-delay: 0.5s;
               transform-origin: center;
+              will-change: transform;
             }
             .road-dust-1 {
               animation: road-dust-1 0.7s ease-out infinite;
               transform-origin: center;
+              will-change: transform;
             }
             .road-dust-2 {
               animation: road-dust-2 1s ease-out infinite;
               animation-delay: 0.35s;
               transform-origin: center;
+              will-change: transform;
+            }
+            .alarm-vibrate {
+              animation: phone-vibrate 0.15s linear infinite;
+              transform-origin: center;
+              will-change: transform;
+            }
+            .bike-vibrate {
+              animation: bike-engine-vibrate 0.08s linear infinite alternate;
+              transform-origin: center;
+              will-change: transform;
             }
           `}</style>
         </defs>
@@ -520,7 +573,8 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
           
           {/* Vibrating Alarm Phone */}
           <g 
-            transform={`translate(320, 125) ${smoothProgress >= 0.12 && smoothProgress < 0.20 ? `translate(${Math.sin(Date.now() * 0.15) * 2.5}, ${Math.cos(Date.now() * 0.15) * 1.5})` : ""}`}
+            className={smoothProgress >= 0.12 && smoothProgress < 0.20 ? "alarm-vibrate" : ""}
+            transform="translate(320, 125)"
             style={{ transformOrigin: "center" }}
           >
             {/* Phone body */}
@@ -675,7 +729,8 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
 
           {/* Rohit starting his bike (vibrates when engine starts) */}
           <g 
-            transform={`translate(160, 130) ${smoothProgress > 0.48 && smoothProgress < 0.60 ? `translate(0, ${Math.sin(Date.now() * 0.25) * 1.5})` : ""}`}
+            className={smoothProgress > 0.48 && smoothProgress < 0.60 ? "bike-vibrate" : ""}
+            transform="translate(160, 130)"
             style={{ transformOrigin: "center" }}
           >
             {/* 1. Rear Wheel Assembly */}
