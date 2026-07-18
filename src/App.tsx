@@ -14,6 +14,7 @@ import {
 import StoryVisualizer from "./components/StoryVisualizer";
 import FinalCinematic from "./components/FinalCinematic";
 import { audio } from "./utils/audio";
+import moveBuddyLogo from "./assets/images/movebuddy_logo_1784401810405.jpg";
 
 // Narrative timeline chapters corresponding to scroll progress (0 to 1)
 const narrativeTimeline = [
@@ -61,6 +62,7 @@ const narrativeTimeline = [
 
 export default function App() {
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [showScrollPrompt, setShowScrollPrompt] = useState(true);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -81,6 +83,14 @@ export default function App() {
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Automatically fade out the scroll explorer prompt after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowScrollPrompt(false);
+    }, 5000);
+    return () => clearTimeout(timer);
   }, []);
 
   // Track global viewport scroll progress relative to the massive container
@@ -105,6 +115,11 @@ export default function App() {
               progress = 0;
             }
             setScrollProgress(progress);
+            
+            // Hide the scroll prompt overlay once the user starts scrolling
+            if (progress > 0.005) {
+              setShowScrollPrompt(false);
+            }
           }
           ticking = false;
         });
@@ -244,9 +259,8 @@ export default function App() {
       <header className="fixed top-3 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-50 flex items-center justify-between pointer-events-none">
         <div className="flex items-center w-full pointer-events-none justify-between gap-2 sm:gap-4">
           {/* Minimal branding */}
-          <div className="flex items-center gap-1 sm:gap-1.5 bg-[#e9eaec]/80 backdrop-blur-md px-2.5 py-1 sm:px-4 sm:py-2 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
-            <CircleDot className="w-3 h-3 sm:w-5 sm:h-5 text-[#ffb300]" />
-            <span className="font-display font-black text-[9px] sm:text-xs tracking-wider sm:tracking-widest text-[#2a2e34]">
+          <div className="flex items-center bg-[#e9eaec]/80 backdrop-blur-md px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
+            <span className="font-display font-black text-[11px] sm:text-sm tracking-wider sm:tracking-widest text-[#2a2e34]">
               MOVEBUDDY<span className="text-[#ffb300]">.IO</span>
             </span>
           </div>
@@ -335,25 +349,44 @@ export default function App() {
       </div>
 
       {/* ==========================================
-          BOUNCING MOUSE SCROLL PROMPT (Visible on first screen)
+          SUBTLE ANIMATED SCROLL DISCOVER OVERLAY (Z-40)
           ========================================== */}
       <AnimatePresence>
-        {scrollProgress < 0.05 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.5 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex flex-col items-center gap-1.5 text-[#2a2e34]/70 font-mono text-[9px] font-black tracking-widest uppercase"
+        {scrollProgress < 0.03 && showScrollPrompt && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95, y: -20 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="fixed inset-0 z-40 pointer-events-none flex items-center justify-center bg-radial from-transparent to-[#2a2e34]/5"
           >
-            <span>Scroll to Explore Story</span>
-            {/* Animated mouse visualizer */}
-            <div className="w-5 h-8 border-2 border-[#2a2e34]/30 rounded-full flex justify-center pt-1.5">
-              <motion.div 
-                animate={{ y: [0, 6, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                className="w-1 h-1.5 bg-[#ffb300] rounded-full"
-              />
+            {/* Elegant glassmorphic indicator card */}
+            <div className="bg-white/90 backdrop-blur-md border border-[#2a2e34]/10 p-5 rounded-3xl shadow-[0_20px_50px_rgba(42,46,52,0.12)] flex flex-col items-center gap-3.5 max-w-[280px] text-center transform -translate-y-[8vh]">
+              <div className="w-10 h-10 rounded-2xl bg-[#ffb300]/10 flex items-center justify-center text-[#ffb300]">
+                <motion.div
+                  animate={{ y: [0, 4, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <ArrowRight className="h-5 w-5 rotate-90" />
+                </motion.div>
+              </div>
+              <div>
+                <h3 className="font-display font-black text-xs text-[#2a2e34] uppercase tracking-wider">
+                  Scroll to know
+                </h3>
+                <p className="font-sans text-[10px] text-[#2a2e34]/60 font-medium mt-1 leading-normal">
+                  Explore the journey of MoveBuddy. Swipe or scroll down to begin.
+                </p>
+              </div>
+              
+              {/* Subtle visual scroll mouse indicator */}
+              <div className="w-4 h-6 border border-[#2a2e34]/20 rounded-full flex justify-center pt-1 mt-0.5">
+                <motion.div
+                  animate={{ y: [0, 3, 0] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-1 h-1.5 bg-[#2a2e34]/60 rounded-full"
+                />
+              </div>
             </div>
           </motion.div>
         )}
@@ -454,7 +487,7 @@ export default function App() {
           FLOATING WHATSAPP BUTTON (Z-[999])
           ========================================== */}
       <motion.a
-        href="https://chat.whatsapp.com/CyEU0UqMp0H4FCwh3M68lC?s=sw&p=a&ilr=0&amv=0"
+        href="https://chat.whatsapp.com/GizueSsKn2C3Qf3xoqyZJD?s=qt&p=a&ilr=0&amv=0"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Join MoveBuddy WhatsApp Community"

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Mail, ArrowRight, Instagram, CheckCircle2 } from "lucide-react";
+import { Mail, ArrowRight, Instagram, CheckCircle2, Phone } from "lucide-react";
 import { audio } from "../utils/audio";
 
 export default function InteractiveForm() {
@@ -173,12 +173,20 @@ export default function InteractiveForm() {
         )}
       </AnimatePresence>
 
-      <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 text-xs text-gray-400">
-        <div className="flex items-center gap-2">
-          <span>Questions?</span>
-          <a href="mailto:Subratpradhan.mb@gmail.com" className="text-white hover:text-[#ffb300] transition-colors">
-            Subratpradhan.mb@gmail.com
-          </a>
+      <div className="mt-8 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-gray-400">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <span>Questions?</span>
+            <a href="mailto:Subratpradhan.mb@gmail.com" className="text-white hover:text-[#ffb300] transition-colors">
+              Subratpradhan.mb@gmail.com
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            <Phone className="h-3 w-3 text-gray-500" />
+            <a href="tel:+917682092722" className="text-white hover:text-[#ffb300] transition-colors font-mono">
+              +91 76820 92722
+            </a>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">

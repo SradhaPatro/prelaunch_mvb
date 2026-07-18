@@ -63,8 +63,8 @@ const mobileKeyframes: CameraKeyframe[] = [
   { p: 0.74, x: 700,  y: 640,  w: 380,  h: 285 },  // 3. Verification/badges
   { p: 0.80, x: 700,  y: 1100, w: 400,  h: 300 },  // 4. Highway active ride & HUD tags
   { p: 0.85, x: 700,  y: 1100, w: 400,  h: 300 },  // 4. Highway active ride & HUD tags
-  { p: 0.89, x: 130,  y: 1110, w: 280,  h: 210 },  // 5. Office destination park arrival
-  { p: 0.95, x: 130,  y: 1110, w: 280,  h: 210 },  // 5. Office destination pause
+  { p: 0.89, x: 170,  y: 1115, w: 300,  h: 225 },  // 5. Office destination park arrival
+  { p: 0.95, x: 170,  y: 1115, w: 300,  h: 225 },  // 5. Office destination pause
   { p: 0.98, x: 400,  y: 300,  w: 1200, h: 900 },  // 6. Seamless zoom back out to India Network
   { p: 1.00, x: 400,  y: -400, w: 1200, h: 900 }   // 7. Pan up into final sky
 ];
@@ -1229,11 +1229,22 @@ export default function StoryVisualizer({ progress, activeSceneOverride }: Story
           {(() => {
             const cardWidth = isMobile ? 190 : 215;
             const innerWidth = cardWidth - 24;
+            const isPayoutActive = smoothProgress > (isMobile ? 0.88 : 0.90) && smoothProgress < 0.96;
+            
+            // Dynamic premium zoom and slide effect
+            const scale = isPayoutActive ? (isMobile ? 0.9 : 1.1) : 0.5;
+            const tx = isMobile ? 115 : 170;
+            const ty = isMobile ? 85 : 110;
+            const transformStr = `translate(${tx}, ${ty}) scale(${scale})`;
+            
             return (
               <g 
-                transform={isMobile ? "translate(175, 70) scale(0.82)" : "translate(170, 115)"}
-                opacity={smoothProgress > (isMobile ? 0.88 : 0.90) && smoothProgress < 0.96 ? 1 : 0}
-                style={{ transition: "opacity 0.4s" }}
+                transform={transformStr}
+                opacity={isPayoutActive ? 1 : 0}
+                style={{ 
+                  transition: "opacity 0.4s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  transformOrigin: `${cardWidth / 2}px 50px`
+                }}
               >
                 {/* Wallet glassmorphic outline */}
                 <rect width={cardWidth} height="100" fill="#e9eaec" fillOpacity="0.95" stroke="#2a2e34" strokeWidth="2" rx="12" filter="url(#shadow)" />

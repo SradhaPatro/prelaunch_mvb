@@ -15,6 +15,7 @@ import {
   Phone
 } from "lucide-react";
 import { audio } from "../utils/audio";
+import moveBuddyLogo from "../assets/images/movebuddy_logo_1784401810405.jpg";
 
 interface FinalCinematicProps {
   key?: string;
@@ -136,9 +137,8 @@ export default function FinalCinematic({
       
       {/* Dynamic top bar with skip / controls */}
       <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-50 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-1.5 sm:gap-2 bg-[#e9eaec]/80 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#2a2e34]/15 pointer-events-auto">
-          <CircleDot className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffb300]" />
-          <span className="font-display font-black text-[10px] sm:text-xs tracking-wider sm:tracking-widest text-[#2a2e34]">
+        <div className="flex items-center bg-[#e9eaec]/80 backdrop-blur-md px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
+          <span className="font-display font-black text-[11px] sm:text-sm tracking-wider sm:tracking-widest text-[#2a2e34]">
             MOVEBUDDY<span className="text-[#ffb300]">.IO</span>
           </span>
         </div>
@@ -559,8 +559,13 @@ export default function FinalCinematic({
                     }}
                     className="relative z-10 flex items-center justify-center"
                   >
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#2a2e34] rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-2xl border-2 border-[#ffb300] relative">
-                      <CircleDot className="w-6 h-6 sm:w-8 sm:h-8 text-[#ffb300]" />
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-2xl border-2 border-[#ffb300] overflow-hidden relative">
+                      <img 
+                        src={moveBuddyLogo} 
+                        alt="MoveBuddy App Icon" 
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover p-1"
+                      />
                     </div>
                   </motion.div>
                 </div>
@@ -707,7 +712,7 @@ export default function FinalCinematic({
 
                     {/* Phone feedback card - directly clickable with tel */}
                     <a 
-                      href="tel:+916371591539"
+                      href="tel:+917682092722"
                       className="bg-white border border-[#2a2e34]/10 p-3.5 rounded-2xl shadow-sm hover:border-[#ffb300] transition-colors flex flex-col justify-between h-24 text-left group"
                     >
                       <div className="flex justify-between items-start mb-2">
@@ -719,7 +724,7 @@ export default function FinalCinematic({
                       <div>
                         <h4 className="font-display font-black text-[9px] tracking-wide text-[#2a2e34] uppercase">Call Us</h4>
                         <span className="text-[9px] font-mono font-bold text-[#2a2e34]/50 leading-none block">
-                          +91 63715 91539
+                          +91 76820 92722
                         </span>
                       </div>
                     </a>
@@ -753,7 +758,7 @@ export default function FinalCinematic({
 
                     {/* Call Link */}
                     <a 
-                      href="tel:+916371591539"
+                      href="tel:+917682092722"
                       title="Call Us"
                       className="w-12 h-12 bg-white border border-[#2a2e34]/10 rounded-2xl flex items-center justify-center shadow-sm hover:border-[#ffb300] active:scale-95 transition-all"
                     >
@@ -866,7 +871,14 @@ export default function FinalCinematic({
                       transition={{ delay: 0.6, duration: 1 }}
                       className="text-center space-y-3"
                     >
-                      <CircleDot className="w-10 h-10 text-[#ffb300] mx-auto animate-pulse" />
+                      <div className="w-16 h-16 rounded-2xl bg-white border border-[#ffb300] flex items-center justify-center overflow-hidden mx-auto shadow-[0_0_20px_rgba(255,179,0,0.15)] mb-2">
+                        <img 
+                          src={moveBuddyLogo} 
+                          alt="MoveBuddy Logo" 
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover p-1.5"
+                        />
+                      </div>
                       <h1 className="font-display font-black text-2xl text-[#e9eaec] tracking-widest uppercase">MOVEBUDDY</h1>
                       <p className="font-sans text-[11px] text-[#e9eaec]/60 max-w-xs mx-auto leading-relaxed uppercase tracking-wider">
                         Thank you for exploring our vision of recurring mobility.
