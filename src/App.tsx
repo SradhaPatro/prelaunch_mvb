@@ -117,7 +117,7 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Handle local waitlist single email or phone submission
+  // Handle local waitlist single email or phone submission with local persistence
   const handleSubmitEmail = (e: React.FormEvent) => {
     e.preventDefault();
     const val = email.trim();
@@ -135,6 +135,23 @@ export default function App() {
     setErrorMsg("");
     setIsSubmitted(true);
     audio.playPaymentDing();
+
+    // Persist waitlist signups in localStorage safely
+    try {
+      const list = JSON.parse(localStorage.getItem("movebuddy_waitlist") || "[]");
+      const phoneVal = isPhone ? val : phone;
+      const emailVal = isEmail ? val : email;
+      list.push({
+        name: "Anonymous Commuter",
+        email: emailVal,
+        phone: phoneVal,
+        joinedAt: new Date().toISOString(),
+        source: "LandingCinematic"
+      });
+      localStorage.setItem("movebuddy_waitlist", JSON.stringify(list));
+    } catch (err) {
+      console.error("Local storage persistence error:", err);
+    }
     
     // Direct synchronous open to prevent browser popup blockers from blocking the redirect
     try {
@@ -144,13 +161,32 @@ export default function App() {
     }
   };
 
+  // Jump smoothly to any specific chapter scroll percentage (0 to 1)
+  const handleJumpToChapter = (p: number) => {
+    audio.playTap();
+    if (storyContainerRef.current) {
+      const containerHeight = storyContainerRef.current.scrollHeight;
+      const windowHeight = window.innerHeight;
+      const totalScrollable = containerHeight - windowHeight;
+      window.scrollTo({
+        top: p * totalScrollable,
+        behavior: "smooth"
+      });
+    }
+  };
+
   // Skip directly to waitlist section
   const handleSkipToContribute = () => {
     setHasInteractedPopup(true);
-    window.scrollTo({
-      top: document.body.scrollHeight,
-      behavior: "smooth"
-    });
+    if (storyContainerRef.current) {
+      const containerHeight = storyContainerRef.current.scrollHeight;
+      const windowHeight = window.innerHeight;
+      const totalScrollable = containerHeight - windowHeight;
+      window.scrollTo({
+        top: totalScrollable, // Scroll exactly to the bottom
+        behavior: "smooth"
+      });
+    }
     audio.playTap();
   };
 
@@ -177,11 +213,22 @@ export default function App() {
 
   const activeNarrative = getActiveNarrative();
 
+  const chapters = [
+    { name: "City Intro", p: 0.00, desc: "India's commuter struggle" },
+    { name: "Morning Struggle", p: 0.15, desc: "Cancelled cabs & surges" },
+    { name: "MoveBuddy Match", p: 0.33, desc: "Instant matching pass" },
+    { name: "Verified Badges", p: 0.50, desc: "Enterprise credentials" },
+    { name: "Shared Route", p: 0.63, desc: "Split expenses, save fuel" },
+    { name: "Live Safety HUD", p: 0.78, desc: "Active safe transit tracking" },
+    { name: "Safe Arrival", p: 0.92, desc: "Aman & Rohit arrive" },
+    { name: "Join Waitlist", p: 0.97, desc: "Reserve your early spot" }
+  ];
+
   return (
     <div 
       ref={storyContainerRef} 
       className="w-full relative bg-[#e9eaec] select-none text-[#2a2e34] overflow-x-hidden font-sans"
-      style={{ minHeight: isMobile ? "420vh" : "950vh" }}
+      style={{ minHeight: isMobile ? "380vh" : "550vh" }}
     >
       
       {/* ==========================================
@@ -195,7 +242,7 @@ export default function App() {
           FLOATING BRANDING & SCENE PROGRESS (Z-50)
           ========================================== */}
       <header className="fixed top-3 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-50 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center w-full pointer-events-none justify-between gap-2">
+        <div className="flex items-center w-full pointer-events-none justify-between gap-2 sm:gap-4">
           {/* Minimal branding */}
           <div className="flex items-center gap-1 sm:gap-1.5 bg-[#e9eaec]/80 backdrop-blur-md px-2.5 py-1 sm:px-4 sm:py-2 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
             <CircleDot className="w-3 h-3 sm:w-5 sm:h-5 text-[#ffb300]" />
@@ -204,8 +251,19 @@ export default function App() {
             </span>
           </div>
 
-          {/* Custom progress capsule - Optimized for both Desktop & Mobile */}
+          {/* Header Action Controls */}
           <div className="flex items-center gap-2 pointer-events-auto">
+            {/* Quick Skip/Join Waitlist Action Button */}
+            <button
+              onClick={handleSkipToContribute}
+              className="flex items-center gap-1 sm:gap-2 bg-[#2a2e34] hover:bg-[#1c1f24] text-[#ffb300] font-black tracking-widest text-[8px] sm:text-[10px] uppercase py-1.5 px-3 sm:py-2 sm:px-4 rounded-full transition-all active:scale-95 shadow-md cursor-pointer border border-[#ffb300]/20"
+              title="Skip directly to Waitlist Form"
+            >
+              <span>Join Waitlist</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+
+            {/* Custom progress capsule - Optimized for both Desktop & Mobile */}
             <div className="flex items-center gap-1 sm:gap-3 bg-[#e9eaec]/95 backdrop-blur-lg px-2 sm:px-4 py-1 sm:py-2 rounded-full border border-[#2a2e34]/15 shadow-md">
               <span className="font-mono text-[7px] sm:text-xs font-black text-[#2a2e34] tracking-wider mr-0.5 sm:mr-3 uppercase">
                 {isMobile ? "JOURNEY" : "THE JOURNEY"}
@@ -238,71 +296,65 @@ export default function App() {
       </header>
 
       {/* ==========================================
-          MID-SCROLL DIALOG POPUP (Choose to Scroll/Skip or Continue)
+          FLOATING DESKTOP CHAPTER TIMELINE SIDEBAR (Z-40)
+          ========================================== */}
+      <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col items-center gap-4 bg-[#e9eaec]/90 backdrop-blur-md px-3.5 py-6 rounded-full border border-[#2a2e34]/15 shadow-lg">
+        {chapters.map((ch, idx) => {
+          const isActive = idx === chapters.length - 1 
+            ? scrollProgress >= ch.p
+            : scrollProgress >= ch.p && scrollProgress < chapters[idx + 1].p;
+          return (
+            <div key={idx} className="relative group flex items-center justify-center">
+              {/* Chapter dot button */}
+              <button
+                onClick={() => handleJumpToChapter(ch.p)}
+                className={`w-3.5 h-3.5 rounded-full transition-all duration-300 relative z-10 flex items-center justify-center cursor-pointer ${
+                  isActive 
+                    ? "bg-[#ffb300] scale-125 ring-4 ring-[#ffb300]/20" 
+                    : "bg-[#2a2e34]/25 hover:bg-[#2a2e34]/60 hover:scale-110"
+                }`}
+              >
+                {isActive && <div className="w-1.5 h-1.5 bg-[#2a2e34] rounded-full" />}
+              </button>
+
+              {/* Connected thin timeline line between dots */}
+              {idx < chapters.length - 1 && (
+                <div className="absolute top-3.5 bottom-[-18px] w-[1.5px] bg-[#2a2e34]/15 pointer-events-none" />
+              )}
+
+              {/* Left-sliding hover tooltip overlay */}
+              <div className="absolute right-full mr-4 pointer-events-none opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 flex flex-col items-end whitespace-nowrap">
+                <div className="bg-[#2a2e34] text-[#e9eaec] px-3 py-1.5 rounded-xl shadow-md border border-white/5 text-right">
+                  <p className="font-display font-black text-[10px] tracking-wider uppercase text-[#ffb300]">{ch.name}</p>
+                  <p className="text-[9px] font-sans text-[#e9eaec]/70 font-medium">{ch.desc}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ==========================================
+          BOUNCING MOUSE SCROLL PROMPT (Visible on first screen)
           ========================================== */}
       <AnimatePresence>
-        {scrollProgress >= 0.50 && scrollProgress < 0.94 && !hasInteractedPopup && (
+        {scrollProgress < 0.05 && (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#121518]/70 backdrop-blur-md z-50 flex items-center justify-center p-4 pointer-events-auto"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.5 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex flex-col items-center gap-1.5 text-[#2a2e34]/70 font-mono text-[9px] font-black tracking-widest uppercase"
           >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="bg-[#e9eaec] border border-[#2a2e34]/15 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative text-center pointer-events-auto"
-            >
-              {/* Soft decorative ring */}
-              <div className="mx-auto w-12 h-12 bg-[#ffb300]/10 rounded-full flex items-center justify-center mb-4">
-                <CircleDot className="w-6 h-6 text-[#ffb300] animate-pulse" />
-              </div>
-              
-              <h3 className="font-display font-black text-lg sm:text-xl text-[#2a2e34] tracking-wider mb-2">
-                CHOOSE YOUR JOURNEY
-              </h3>
-              
-              <p className="text-xs sm:text-sm text-[#2a2e34]/70 mb-6 leading-relaxed">
-                You can scroll through the interactive office commute story, or skip directly to secure your waitlist spot.
-              </p>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={handleSkipToContribute}
-                  className="w-full bg-[#2a2e34] hover:bg-[#1c1f24] text-[#ffb300] font-black tracking-widest text-[10px] sm:text-xs uppercase py-3 px-4 rounded-full transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Skip to Contribute</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-                
-                <button
-                  onClick={handleContinueStory}
-                  className="w-full bg-transparent hover:bg-[#2a2e34]/5 text-[#2a2e34] font-black border-2 border-[#2a2e34]/25 hover:border-[#2a2e34] tracking-widest text-[10px] sm:text-xs uppercase py-2.5 px-4 rounded-full transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Continue Story</span>
-                </button>
-              </div>
-
-              {/* Quick Sound Toggle inside popup */}
-              <button 
-                onClick={handleToggleMute}
-                className="mt-5 inline-flex items-center gap-1.5 text-[9px] sm:text-xs font-mono font-black text-[#2a2e34]/65 hover:text-[#2a2e34] cursor-pointer transition-colors"
-              >
-                {isMuted ? (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5 text-red-500" />
-                    <span>SOUND OFF (TAP TO UNMUTE)</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-[#ffb300] animate-bounce" />
-                    <span>SOUND ON 🔊</span>
-                  </>
-                )}
-              </button>
-            </motion.div>
+            <span>Scroll to Explore Story</span>
+            {/* Animated mouse visualizer */}
+            <div className="w-5 h-8 border-2 border-[#2a2e34]/30 rounded-full flex justify-center pt-1.5">
+              <motion.div 
+                animate={{ y: [0, 6, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                className="w-1 h-1.5 bg-[#ffb300] rounded-full"
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -321,12 +373,35 @@ export default function App() {
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="w-full max-w-xl sm:max-w-2xl bg-[#e9eaec]/85 backdrop-blur-lg border border-[#2a2e34]/15 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl pointer-events-auto shadow-2xl space-y-2 sm:space-y-4"
             >
-              {/* Scene Indicator */}
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ffb300] animate-ping" />
-                <span className="font-mono text-[8px] sm:text-[9px] font-bold text-[#2a2e34]/50 tracking-widest uppercase">
-                  OUR VISION
-                </span>
+              {/* Scene Indicator & Skip Dot Links */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-[#2a2e34]/10">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ffb300] animate-ping" />
+                  <span className="font-mono text-[8px] sm:text-[9px] font-bold text-[#2a2e34]/50 tracking-widest uppercase">
+                    OUR VISION
+                  </span>
+                </div>
+                
+                {/* Inline Chapter Quick dots - clickable path navigator for both desktop and mobile screens */}
+                <div className="flex items-center gap-1.5 sm:gap-2.5 py-0.5">
+                  {chapters.map((item, idx) => {
+                    const isDotActive = idx === chapters.length - 1
+                      ? scrollProgress >= item.p
+                      : scrollProgress >= item.p && scrollProgress < chapters[idx + 1].p;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleJumpToChapter(item.p)}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 pointer-events-auto cursor-pointer ${
+                          isDotActive 
+                            ? "bg-[#ffb300] scale-135 ring-4 ring-[#ffb300]/20" 
+                            : "bg-[#2a2e34]/25 hover:bg-[#2a2e34]/60"
+                        }`}
+                        title={item.name}
+                      />
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Dynamic Title */}
