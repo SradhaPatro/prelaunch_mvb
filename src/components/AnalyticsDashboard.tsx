@@ -53,14 +53,19 @@ export default function AnalyticsDashboard() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [passcode, setPasscode] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const replayTimerRef = useRef<any>(null);
   const rippleIdRef = useRef<number>(0);
 
   // Load and refresh stats
   const refreshStats = () => {
+    setIsRefreshing(true);
     const data = tracker.getSessions();
     setSessions(data);
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 600);
   };
 
   useEffect(() => {
@@ -261,6 +266,39 @@ export default function AnalyticsDashboard() {
   };
 
   // Core KPI aggregation
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d;
+  });
+
+  const dailyCounts = last7Days.map(dayDate => {
+    const startOfDay = new Date(dayDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dayDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    return sessions.filter(s => s.startTime >= startOfDay.getTime() && s.startTime <= endOfDay.getTime()).length;
+  });
+
+  const maxCount = Math.max(...dailyCounts, 1);
+  const plotHeight = 25; // height offset within SVG
+  const plotBottom = 30;
+
+  const points = dailyCounts.map((count, i) => {
+    const x = (i / 6) * 100;
+    const y = plotBottom - (count / maxCount) * plotHeight;
+    return { x, y, count };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L 100 35 L 0 35 Z`;
+
+  const formatDayLabel = (d: Date, isToday: boolean) => {
+    const month = d.toLocaleDateString('en-US', { month: 'short' });
+    const day = d.getDate();
+    return isToday ? `${month} ${day} (Today)` : `${month} ${day}`;
+  };
+
   const totalPageViews = sessions.reduce((acc, s) => acc + s.pageViews, 0);
   const totalSessions = sessions.length;
   const uniqueUsers = Array.from(new Set(sessions.map(s => s.id))).length;
@@ -476,24 +514,11 @@ export default function AnalyticsDashboard() {
               
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => {
-                    if (confirm("Log out of Admin Analytics?")) {
-                      localStorage.removeItem("movebuddy_is_admin");
-                      setIsAdmin(false);
-                      setIsOpen(false);
-                    }
-                  }}
-                  className="px-2.5 py-1 text-[10px] font-mono border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-full transition-all"
-                  title="Exit Admin Mode"
-                >
-                  Logout
-                </button>
-                <button 
                   onClick={refreshStats}
                   className="p-1.5 hover:bg-white/10 rounded-full transition-all text-white/70 hover:text-white"
                   title="Force Refresh Data"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className={`w-4 h-4 transition-transform duration-500 ${isRefreshing ? 'animate-spin text-[#ffb300]' : ''}`} />
                 </button>
                 <button 
                   onClick={() => setIsOpen(false)}
@@ -644,29 +669,38 @@ export default function AnalyticsDashboard() {
                         
                         {/* Area */}
                         <path 
-                          d="M 0 35 C 10 20, 20 28, 30 14 C 40 8, 50 18, 60 10 C 70 6, 80 18, 90 22 L 100 5 L 100 35 Z" 
+                          d={areaPath} 
                           fill="url(#areaGrad)" 
                         />
                         {/* Stroke */}
                         <path 
-                          d="M 0 35 C 10 20, 20 28, 30 14 C 40 8, 50 18, 60 10 C 70 6, 80 18, 90 22 L 100 5" 
+                          d={linePath} 
                           fill="none" 
                           stroke="#ffb300" 
                           strokeWidth="0.8" 
                           strokeLinecap="round"
+                          strokeLinejoin="round"
                         />
                         
                         {/* Data point glow circles */}
-                        <circle cx="30" cy="14" r="1.2" fill="#ffb300" stroke="#2a2e34" strokeWidth="0.4" />
-                        <circle cx="60" cy="10" r="1.2" fill="#ffb300" stroke="#2a2e34" strokeWidth="0.4" />
-                        <circle cx="100" cy="5" r="1.2" fill="#ffb300" stroke="#2a2e34" strokeWidth="0.4" />
+                        {points.map((p, i) => (
+                          <circle 
+                            key={i} 
+                            cx={p.x} 
+                            cy={p.y} 
+                            r="1.1" 
+                            fill="#ffb300" 
+                            stroke="#2a2e34" 
+                            strokeWidth="0.4" 
+                          />
+                        ))}
                       </svg>
                       {/* Timeline labels */}
                       <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1 text-[8px] font-mono text-white/40 uppercase tracking-widest pt-2">
-                        <span>Jul 12</span>
-                        <span>Jul 14</span>
-                        <span>Jul 16</span>
-                        <span>Jul 18 (Today)</span>
+                        <span>{formatDayLabel(last7Days[0], false)}</span>
+                        <span>{formatDayLabel(last7Days[2], false)}</span>
+                        <span>{formatDayLabel(last7Days[4], false)}</span>
+                        <span>{formatDayLabel(last7Days[6], true)}</span>
                       </div>
                     </div>
                   </div>
