@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Mail, ArrowRight, Instagram, CheckCircle2, Phone } from "lucide-react";
 import { audio } from "../utils/audio";
+import { tracker } from "../utils/analytics";
 
 export default function InteractiveForm() {
   const [email, setEmail] = useState("");
@@ -26,6 +27,13 @@ export default function InteractiveForm() {
     setError("");
     setIsLoading(true);
 
+    // Track submission in progress
+    tracker.logEvent({
+      type: 'form_submit',
+      target: 'InteractiveForm',
+      value: email
+    });
+
     // Simulate database write
     setTimeout(() => {
       setIsLoading(false);
@@ -47,6 +55,7 @@ export default function InteractiveForm() {
       }, 1000);
     }, 1200);
   };
+
 
   return (
     <div id="interactive-waitlist-card" className="w-full max-w-lg bg-[#2a2e34] rounded-2xl p-8 border border-white/10 shadow-2xl relative overflow-hidden text-white">
@@ -89,7 +98,11 @@ export default function InteractiveForm() {
                   type="text"
                   placeholder="Enter your name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    tracker.logEvent({ type: 'form_input', target: 'input#name', value: 'typing_name' });
+                  }}
+                  onFocus={() => tracker.logEvent({ type: 'form_focus', target: 'input#name ("Your Name")' })}
                   disabled={isLoading}
                   className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#ffb300] focus:ring-1 focus:ring-[#ffb300]/30 transition-all placeholder:text-gray-500"
                 />
@@ -103,7 +116,11 @@ export default function InteractiveForm() {
                     type="email"
                     placeholder="you@company.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      tracker.logEvent({ type: 'form_input', target: 'input#email', value: 'typing_email' });
+                    }}
+                    onFocus={() => tracker.logEvent({ type: 'form_focus', target: 'input#email ("Your Email")' })}
                     disabled={isLoading}
                     className="w-full bg-white/5 border border-white/15 rounded-xl pl-11 pr-4 py-3 text-white text-sm focus:outline-none focus:border-[#ffb300] focus:ring-1 focus:ring-[#ffb300]/30 transition-all placeholder:text-gray-500"
                   />

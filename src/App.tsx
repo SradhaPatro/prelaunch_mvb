@@ -15,6 +15,8 @@ import StoryVisualizer from "./components/StoryVisualizer";
 import FinalCinematic from "./components/FinalCinematic";
 import { audio } from "./utils/audio";
 import moveBuddyLogo from "./assets/images/movebuddy_logo_1784401810405.jpg";
+import { tracker } from "./utils/analytics";
+import AnalyticsDashboard from "./components/AnalyticsDashboard";
 
 // Narrative timeline chapters corresponding to scroll progress (0 to 1)
 const narrativeTimeline = [
@@ -76,6 +78,7 @@ export default function App() {
   const handleToggleMute = () => {
     const newState = audio.toggleMute();
     setIsMuted(newState);
+    tracker.logEvent({ type: 'audio_toggle', value: newState ? 'muted' : 'unmuted' });
   };
 
   useEffect(() => {
@@ -151,6 +154,13 @@ export default function App() {
     setIsSubmitted(true);
     audio.playPaymentDing();
 
+    // Track submission in progress
+    tracker.logEvent({
+      type: 'form_submit',
+      target: 'Email Waitlist Form (App.tsx)',
+      value: val
+    });
+
     // Persist waitlist signups in localStorage safely
     try {
       const list = JSON.parse(localStorage.getItem("movebuddy_waitlist") || "[]");
@@ -179,6 +189,10 @@ export default function App() {
   // Jump smoothly to any specific chapter scroll percentage (0 to 1)
   const handleJumpToChapter = (p: number) => {
     audio.playTap();
+    tracker.logEvent({
+      type: 'chapter_jump',
+      value: `percent_${Math.round(p * 100)}`
+    });
     if (storyContainerRef.current) {
       const containerHeight = storyContainerRef.current.scrollHeight;
       const windowHeight = window.innerHeight;
@@ -193,6 +207,10 @@ export default function App() {
   // Skip directly to waitlist section
   const handleSkipToContribute = () => {
     setHasInteractedPopup(true);
+    tracker.logEvent({
+      type: 'click',
+      target: 'CTA Button: Join Waitlist (Skip)'
+    });
     if (storyContainerRef.current) {
       const containerHeight = storyContainerRef.current.scrollHeight;
       const windowHeight = window.innerHeight;
@@ -212,10 +230,31 @@ export default function App() {
   };
 
   // Helper to copy contact email address
+  const [logoClicks, setLogoClicks] = useState(0);
+  const handleLogoClick = () => {
+    audio.playTap();
+    const next = logoClicks + 1;
+    if (next >= 3) {
+      window.dispatchEvent(new CustomEvent("trigger-admin-login"));
+      setLogoClicks(0);
+    } else {
+      setLogoClicks(next);
+      // Automatically reset if they don't click again soon
+      const timer = setTimeout(() => {
+        setLogoClicks(0);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  };
+
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("Subratpradhan.mb@gmail.com");
     setCopiedEmail(true);
     audio.playTap();
+    tracker.logEvent({
+      type: 'click',
+      target: 'Link: Copy Contact Email'
+    });
     setTimeout(() => setCopiedEmail(false), 2500);
   };
 
@@ -259,7 +298,11 @@ export default function App() {
       <header className="fixed top-3 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-50 flex items-center justify-between pointer-events-none">
         <div className="flex items-center w-full pointer-events-none justify-between gap-2 sm:gap-4">
           {/* Minimal branding */}
-          <div className="flex items-center bg-[#e9eaec]/80 backdrop-blur-md px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm">
+          <div 
+            onClick={handleLogoClick}
+            className="flex items-center bg-[#e9eaec]/80 backdrop-blur-md px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-full border border-[#2a2e34]/15 pointer-events-auto shadow-sm cursor-pointer select-none"
+            title="MOVEBUDDY.IO (Admin portal hidden)"
+          >
             <span className="font-display font-black text-[11px] sm:text-sm tracking-wider sm:tracking-widest text-[#2a2e34]">
               MOVEBUDDY<span className="text-[#ffb300]">.IO</span>
             </span>
@@ -513,6 +556,11 @@ export default function App() {
           <span className="absolute top-1/2 -translate-y-1/2 left-full w-0 h-0 border-4 border-transparent border-l-[#2a2e34]" />
         </span>
       </motion.a>
+
+      {/* ==========================================
+          BEHAVIOR INTEL & ANALYTICS DASHBOARD (Z-[999])
+          ========================================== */}
+      <AnalyticsDashboard />
 
     </div>
   );
