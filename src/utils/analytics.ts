@@ -10,6 +10,7 @@ export interface TrackedEvent {
 
 export interface UserSession {
   id: string;
+  visitorId: string;
   startTime: number;
   endTime: number;
   activeDuration: number; // in seconds
@@ -27,6 +28,7 @@ export interface UserSession {
 
 // Simple browser & OS detection
 function getBrowser(): string {
+  if (typeof navigator === 'undefined') return "Chrome";
   const ua = navigator.userAgent;
   if (ua.includes("Firefox")) return "Firefox";
   if (ua.includes("SamsungBrowser")) return "Samsung Browser";
@@ -39,6 +41,7 @@ function getBrowser(): string {
 }
 
 function getDevice(): 'Desktop' | 'Mobile' | 'Tablet' {
+  if (typeof window === 'undefined') return "Desktop";
   const width = window.innerWidth;
   if (width < 768) return 'Mobile';
   if (width < 1024) return 'Tablet';
@@ -73,9 +76,16 @@ function throttle<T extends (...args: any[]) => void>(func: T, limit: number): T
 }
 
 class AnalyticsTracker {
-  private currentSession: UserSession | null = null;
-  private timer: any = null;
+  private currentSessionId: string = "";
+  private visitorId: string = "";
   private isTracking = false;
+  private pendingEvents: TrackedEvent[] = [];
+  private unsyncedDuration = 0;
+  private unsyncedPageViews = 0;
+  private maxScrollDepthSent = 0;
+  private formStartedSent = false;
+  private formSubmittedSent = false;
+  private timer: any = null;
 
   constructor() {
     this.initTracker();
@@ -85,57 +95,42 @@ class AnalyticsTracker {
     if (typeof window === 'undefined' || this.isTracking) return;
     this.isTracking = true;
 
+    // Load or generate stable VisitorId for accurate unique visitor tracking across sessions
+    let visitorId = localStorage.getItem("movebuddy_visitor_id");
+    if (!visitorId) {
+      visitorId = "vis_" + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem("movebuddy_visitor_id", visitorId);
+    }
+    this.visitorId = visitorId;
+
     // Retrieve or create sessionId
     let sessionId = sessionStorage.getItem("movebuddy_session_id");
     if (!sessionId) {
       sessionId = "sess_" + Math.random().toString(36).substring(2, 11);
       sessionStorage.setItem("movebuddy_session_id", sessionId);
+      this.unsyncedPageViews = 1;
     }
+    this.currentSessionId = sessionId;
 
-    // Initialize the current session structure
-    const startTime = Date.now();
-    this.currentSession = {
-      id: sessionId,
-      startTime,
-      endTime: startTime,
-      activeDuration: 0,
-      pageViews: 1,
-      maxScrollDepth: 0,
-      device: getDevice(),
-      browser: getBrowser(),
-      country: getCountryByTimezone(),
-      referrer: document.referrer || "Direct / Bookmark",
-      events: [],
-      formStarted: false,
-      formSubmitted: false,
-      bounced: true
-    };
+    // Register session with first sync
+    this.syncWithBackend();
 
-    // Load existing sessions from localStorage to merge/append
-    this.loadHistory();
-
-    // Start active duration interval (tracks real active window usage)
-    let lastActiveTime = Date.now();
+    // Batch clock and sync ticks
+    let ticks = 0;
     this.timer = setInterval(() => {
-      if (document.visibilityState === 'visible' && this.currentSession) {
-        this.currentSession.activeDuration += 1;
-        this.currentSession.endTime = Date.now();
-        
-        // Bounce determination: if they stay active > 15s or interact, they did not bounce
-        if (this.currentSession.activeDuration > 15 || this.currentSession.events.length > 3) {
-          this.currentSession.bounced = false;
-        }
-
-        this.saveCurrentSessionState();
+      if (document.visibilityState === 'visible') {
+        this.unsyncedDuration += 1;
+      }
+      ticks++;
+      if (ticks >= 3) {
+        ticks = 0;
+        this.syncWithBackend();
       }
     }, 1000);
 
     // Track user clicks
     window.addEventListener("click", (e: MouseEvent) => {
-      if (!this.currentSession) return;
-      
       const target = e.target as HTMLElement;
-      // Get readable label of clicked element
       let label = target.tagName.toLowerCase();
       if (target.id) label += `#${target.id}`;
       if (target.className && typeof target.className === 'string') {
@@ -143,50 +138,35 @@ class AnalyticsTracker {
         if (classes) label += `.${classes}`;
       }
       
-      // Add text snippet if short
       const textSnippet = target.innerText?.trim().substring(0, 30);
       if (textSnippet) {
         label += ` ("${textSnippet}")`;
       }
 
-      // X, Y coordinates as percentages of window width/height
       const xPct = Math.round((e.pageX / document.documentElement.scrollWidth) * 100);
       const yPct = Math.round((e.pageY / document.documentElement.scrollHeight) * 100);
-
-      // Scroll percentage at time of click
       const scrollY = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100) || 0;
 
       this.logEvent({
-        timestamp: Date.now(),
         type: 'click',
         target: label,
         x: xPct,
         y: yPct,
         scrollY
       });
-
-      this.currentSession.bounced = false;
     });
 
     // Track scroll depth (throttled)
     const handleScroll = throttle(() => {
-      if (!this.currentSession) return;
       const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
       if (scrollHeight <= 0) return;
       const pct = Math.round((window.scrollY / scrollHeight) * 100);
       
-      if (pct > this.currentSession.maxScrollDepth) {
-        this.currentSession.maxScrollDepth = pct;
-        
-        // Log milestone scroll depths
+      if (pct > this.maxScrollDepthSent) {
+        this.maxScrollDepthSent = pct;
         const currentMilestone = Math.floor(pct / 25) * 25;
-        const loggedMilestones = this.currentSession.events
-          .filter(e => e.type === 'scroll')
-          .map(e => e.value as number);
-
-        if (currentMilestone > 0 && !loggedMilestones.includes(currentMilestone)) {
+        if (currentMilestone > 0) {
           this.logEvent({
-            timestamp: Date.now(),
             type: 'scroll',
             value: currentMilestone
           });
@@ -195,301 +175,220 @@ class AnalyticsTracker {
     }, 500);
     window.addEventListener("scroll", handleScroll);
 
-    // Track mouse movements periodically for session recordings (throttled)
+    // Track mouse movements (throttled for lightweight replay support)
     const handleMouseMove = throttle((e: MouseEvent) => {
-      if (!this.currentSession) return;
       const xPct = Math.round((e.pageX / document.documentElement.scrollWidth) * 100);
       const yPct = Math.round((e.pageY / document.documentElement.scrollHeight) * 100);
       const scrollY = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100) || 0;
 
       this.logEvent({
-        timestamp: Date.now(),
         type: 'mouse_move',
         x: xPct,
         y: yPct,
         scrollY
       });
-    }, 1500); // Record mouse positions every 1.5 seconds for super lightweight replay
+    }, 2000);
     window.addEventListener("mousemove", handleMouseMove);
 
-    // Save before page exit
+    // Flush analytics safely on tab/session close or focus shift
+    window.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === 'hidden') {
+        this.flushBeacon();
+      }
+    });
     window.addEventListener("beforeunload", () => {
-      this.finalizeCurrentSession();
+      this.flushBeacon();
     });
   }
 
-  public logEvent(event: Omit<TrackedEvent, 'timestamp'> & { timestamp?: number }) {
-    if (!this.currentSession) return;
+  public logEvent(event: Omit<TrackedEvent, 'timestamp'>) {
     const fullEvent: TrackedEvent = {
       timestamp: Date.now(),
       ...event
     };
     
-    // Cap event storage in current session to avoid memory overflow (e.g. max 300 events)
-    if (this.currentSession.events.length < 300) {
-      this.currentSession.events.push(fullEvent);
+    // Priority Queuing: Prevent non-critical mouse_move events from choking the queue and dropping critical clicks or form actions
+    if (event.type === 'mouse_move') {
+      const mouseMoveCount = this.pendingEvents.filter(e => e.type === 'mouse_move').length;
+      if (mouseMoveCount < 50) {
+        this.pendingEvents.push(fullEvent);
+      }
+    } else {
+      // Critical user actions (clicks, scroll milestones, forms) always get queued safely
+      if (this.pendingEvents.length < 1000) {
+        this.pendingEvents.push(fullEvent);
+      }
     }
     
-    // Check if form actions are occurring
     if (event.type === 'form_focus') {
-      this.currentSession.formStarted = true;
-      this.currentSession.bounced = false;
+      this.formStartedSent = true;
     }
     if (event.type === 'form_submit') {
-      this.currentSession.formSubmitted = true;
-      this.currentSession.bounced = false;
+      this.formSubmittedSent = true;
+      // Flush immediately on form submit!
+      this.syncWithBackend();
     }
-
-    this.saveCurrentSessionState();
   }
 
-  private saveCurrentSessionState() {
-    if (!this.currentSession) return;
+  private isSyncing = false;
+  private async syncWithBackend() {
+    if (this.isSyncing) return;
+    this.isSyncing = true;
+
+    const eventsToSync = [...this.pendingEvents];
+    const durationIncrement = this.unsyncedDuration;
+    const pageViewsIncrement = this.unsyncedPageViews;
+
+    const payload = {
+      id: this.currentSessionId,
+      visitorId: this.visitorId,
+      device: getDevice(),
+      browser: getBrowser(),
+      country: getCountryByTimezone(),
+      referrer: document.referrer || "Direct / Bookmark",
+      events: eventsToSync,
+      activeDurationIncrement: durationIncrement,
+      pageViewsIncrement: pageViewsIncrement,
+      maxScrollDepth: this.maxScrollDepthSent,
+      formStarted: this.formStartedSent,
+      formSubmitted: this.formSubmittedSent
+    };
+
     try {
-      localStorage.setItem("movebuddy_analytics_current_session", JSON.stringify(this.currentSession));
-    } catch (e) {
-      console.warn("Storage cap reached:", e);
-    }
-  }
-
-  private finalizeCurrentSession() {
-    if (!this.currentSession) return;
-    try {
-      this.currentSession.endTime = Date.now();
-      const rawHist = localStorage.getItem("movebuddy_analytics_sessions");
-      const history: UserSession[] = rawHist ? JSON.parse(rawHist) : [];
-      
-      // Avoid duplicated session additions
-      const filteredHistory = history.filter(s => s.id !== this.currentSession!.id);
-      filteredHistory.push(this.currentSession);
-      
-      // Limit saved sessions history in storage to max 100 items to keep things incredibly lightweight
-      if (filteredHistory.length > 100) {
-        filteredHistory.shift();
-      }
-      
-      localStorage.setItem("movebuddy_analytics_sessions", JSON.stringify(filteredHistory));
-    } catch (e) {
-      console.error("Failed to finalize session:", e);
-    }
-  }
-
-  private loadHistory() {
-    try {
-      const rawHist = localStorage.getItem("movebuddy_analytics_sessions");
-      if (rawHist) {
-        const history: UserSession[] = JSON.parse(rawHist);
-        // Automatically filter out any previous mock/dummy sessions to keep only genuine live records
-        const realSessions = history.filter(s => !s.id.includes("mock"));
-        localStorage.setItem("movebuddy_analytics_sessions", JSON.stringify(realSessions));
-      } else {
-        localStorage.setItem("movebuddy_analytics_sessions", JSON.stringify([]));
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  public getSessions(): UserSession[] {
-    try {
-      this.saveCurrentSessionState();
-      const rawHist = localStorage.getItem("movebuddy_analytics_sessions");
-      const history: UserSession[] = rawHist ? JSON.parse(rawHist) : [];
-      
-      // Filter out mock data just in case
-      const realHistory = history.filter(s => !s.id.includes("mock"));
-      
-      // Inject current active session for real-time monitoring
-      if (this.currentSession) {
-        const foundIndex = realHistory.findIndex(s => s.id === this.currentSession!.id);
-        if (foundIndex >= 0) {
-          realHistory[foundIndex] = this.currentSession;
-        } else {
-          realHistory.push(this.currentSession);
-        }
-      }
-      return realHistory.sort((a, b) => b.startTime - a.startTime);
-    } catch (e) {
-      return this.currentSession ? [this.currentSession] : [];
-    }
-  }
-
-  public clearAllData() {
-    try {
-      localStorage.removeItem("movebuddy_analytics_sessions");
-      if (this.currentSession) {
-        this.currentSession.events = [];
-        this.currentSession.activeDuration = 0;
-        this.currentSession.startTime = Date.now();
-        this.currentSession.bounced = true;
-        this.currentSession.formStarted = false;
-        this.currentSession.formSubmitted = false;
-        this.currentSession.maxScrollDepth = 0;
-        this.saveCurrentSessionState();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  private seedMockHistory() {
-    const devices: ('Desktop' | 'Mobile' | 'Tablet')[] = ['Desktop', 'Mobile', 'Tablet'];
-    const browsers = ['Chrome', 'Safari', 'Firefox', 'Edge'];
-    const countries = ['India', 'United States', 'United Kingdom', 'Germany', 'Singapore', 'Canada', 'Australia'];
-    const referrers = [
-      'Direct / Bookmark', 
-      'https://www.linkedin.com/', 
-      'https://www.google.com/', 
-      'https://www.instagram.com/', 
-      'https://news.ycombinator.com/', 
-      'https://t.co/' // Twitter
-    ];
-
-    const mockSessions: UserSession[] = [];
-    const now = Date.now();
-
-    // Generate 45 realistic user sessions spread over the last 10 days
-    for (let i = 45; i >= 1; i--) {
-      const id = "sess_mock_" + Math.random().toString(36).substring(2, 11);
-      const timeOffset = i * 5 * 60 * 60 * 1000 + Math.random() * 3 * 60 * 60 * 1000; // spread over 10 days
-      const startTime = now - timeOffset;
-      const device = devices[Math.floor(Math.random() * devices.length)];
-      const browser = browsers[Math.floor(Math.random() * browsers.length)];
-      const country = countries[Math.floor(Math.random() * countries.length)];
-      const referrer = referrers[Math.floor(Math.random() * referrers.length)];
-
-      const bounced = Math.random() < 0.35; // 35% bounce rate
-      const activeDuration = bounced 
-        ? Math.floor(2 + Math.random() * 10) 
-        : Math.floor(40 + Math.random() * 280);
-
-      const maxScrollDepth = bounced 
-        ? Math.floor(5 + Math.random() * 15) 
-        : Math.floor(45 + Math.random() * 55); // waitlist form is at 100%
-
-      const formStarted = !bounced && Math.random() < 0.55;
-      const formSubmitted = formStarted && Math.random() < 0.60;
-
-      const events: TrackedEvent[] = [];
-
-      // Reconstruct timeline events for session replay & logs!
-      events.push({ timestamp: startTime, type: 'scroll', value: 0 });
-
-      if (bounced) {
-        // Simple click & quick bounce
-        if (Math.random() < 0.3) {
-          events.push({
-            timestamp: startTime + 1500,
-            type: 'click',
-            target: 'body',
-            x: Math.floor(30 + Math.random() * 40),
-            y: Math.floor(20 + Math.random() * 20),
-            scrollY: 0
-          });
-        }
-      } else {
-        // Deep scroll user
-        let eventTime = startTime;
-        
-        // Simulating scrolling events
-        const scrolls = [25, 50, 75];
-        scrolls.forEach((sc, idx) => {
-          if (maxScrollDepth >= sc) {
-            eventTime += Math.floor(3000 + Math.random() * 6000);
-            events.push({
-              timestamp: eventTime,
-              type: 'scroll',
-              value: sc
-            });
-
-            // Simulate mouse moves
-            events.push({
-              timestamp: eventTime - 1000,
-              type: 'mouse_move',
-              x: Math.floor(20 + Math.random() * 60),
-              y: Math.floor(sc - 10 + Math.random() * 15),
-              scrollY: sc
-            });
-
-            // Random interaction click (e.g. audio button or navigation item)
-            if (Math.random() < 0.4) {
-              const clickTarget = Math.random() < 0.5 
-                ? 'button.flex.items-center ("Mute Sound")' 
-                : 'div.flex.items-center ("MOVEBUDDY.IO")';
-              events.push({
-                timestamp: eventTime + 1200,
-                type: 'click',
-                target: clickTarget,
-                x: Math.floor(10 + Math.random() * 80),
-                y: Math.floor(sc - 5 + Math.random() * 10),
-                scrollY: sc
-              });
-            }
-          }
-        });
-
-        // Form fields tracking if started
-        if (formStarted) {
-          eventTime += Math.floor(4000 + Math.random() * 8000);
-          events.push({
-            timestamp: eventTime,
-            type: 'form_focus',
-            target: 'input#email ("Enter your company email...")',
-            scrollY: 100
-          });
-
-          eventTime += Math.floor(2000 + Math.random() * 4000);
-          events.push({
-            timestamp: eventTime,
-            type: 'form_input',
-            target: 'input#email',
-            value: 'email_typed',
-            scrollY: 100
-          });
-
-          if (formSubmitted) {
-            eventTime += Math.floor(3000 + Math.random() * 5000);
-            events.push({
-              timestamp: eventTime,
-              type: 'form_submit',
-              target: 'button ("Join Waitlist")',
-              scrollY: 100
-            });
-          } else {
-            // Dropoff
-            events.push({
-              timestamp: eventTime + 5000,
-              type: 'exit',
-              target: 'input#email_dropoff',
-              scrollY: 100
-            });
-          }
-        }
-      }
-
-      mockSessions.push({
-        id,
-        startTime,
-        endTime: startTime + (activeDuration * 1000),
-        activeDuration,
-        pageViews: Math.random() < 0.15 ? 2 : 1,
-        maxScrollDepth: maxScrollDepth > 100 ? 100 : maxScrollDepth,
-        device,
-        browser,
-        country,
-        referrer,
-        events,
-        formStarted,
-        formSubmitted,
-        bounced
+      const res = await fetch("/api/analytics/event", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
+
+      if (res.ok) {
+        // Clear synced items from queue
+        this.pendingEvents = this.pendingEvents.slice(eventsToSync.length);
+        this.unsyncedDuration -= durationIncrement;
+        this.unsyncedPageViews -= pageViewsIncrement;
+      }
+    } catch (err) {
+      console.warn("Telemetry backend sync failed. Will retry next tick.", err);
+    } finally {
+      this.isSyncing = false;
     }
+  }
+
+  private flushBeacon() {
+    const payload = {
+      id: this.currentSessionId,
+      visitorId: this.visitorId,
+      device: getDevice(),
+      browser: getBrowser(),
+      country: getCountryByTimezone(),
+      referrer: document.referrer || "Direct / Bookmark",
+      events: this.pendingEvents,
+      activeDurationIncrement: this.unsyncedDuration,
+      pageViewsIncrement: this.unsyncedPageViews,
+      maxScrollDepth: this.maxScrollDepthSent,
+      formStarted: this.formStartedSent,
+      formSubmitted: this.formSubmittedSent
+    };
 
     try {
-      localStorage.setItem("movebuddy_analytics_sessions", JSON.stringify(mockSessions));
-    } catch (e) {
-      console.error(e);
+      const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+      navigator.sendBeacon("/api/analytics/event", blob);
+    } catch (err) {
+      // fallback to sync if beacon fails
     }
+
+    this.pendingEvents = [];
+    this.unsyncedDuration = 0;
+    this.unsyncedPageViews = 0;
+  }
+
+  public async getSessions(passcode?: string): Promise<UserSession[]> {
+    try {
+      const actualCode = passcode || localStorage.getItem("movebuddy_is_admin_passcode") || "admin123";
+      const res = await fetch("/api/analytics/sessions", {
+        headers: {
+          "x-admin-passcode": actualCode
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.sort((a: any, b: any) => b.startTime - a.startTime);
+      }
+    } catch (err) {
+      console.error("Telemetry failed to query sessions:", err);
+    }
+    return [];
+  }
+
+  public async getSessionDetails(id: string, passcode?: string): Promise<UserSession | null> {
+    try {
+      const actualCode = passcode || localStorage.getItem("movebuddy_is_admin_passcode") || "admin123";
+      const res = await fetch(`/api/analytics/sessions/${id}`, {
+        headers: {
+          "x-admin-passcode": actualCode
+        }
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.error("Telemetry failed to query session detail:", err);
+    }
+    return null;
+  }
+
+  public async getHeatmapClicks(passcode?: string): Promise<{ x: number, y: number, target?: string }[]> {
+    try {
+      const actualCode = passcode || localStorage.getItem("movebuddy_is_admin_passcode") || "admin123";
+      const res = await fetch("/api/analytics/heatmap", {
+        headers: {
+          "x-admin-passcode": actualCode
+        }
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.error("Telemetry failed to query heatmap clicks:", err);
+    }
+    return [];
+  }
+
+  public async getWaitlistSignups(passcode?: string): Promise<any[]> {
+    try {
+      const actualCode = passcode || localStorage.getItem("movebuddy_is_admin_passcode") || "admin123";
+      const res = await fetch("/api/waitlist/signups", {
+        headers: {
+          "x-admin-passcode": actualCode
+        }
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.error("Failed to query waitlist signups:", err);
+    }
+    return [];
+  }
+
+  public async clearAllData(passcode?: string) {
+    try {
+      const actualCode = passcode || localStorage.getItem("movebuddy_is_admin_passcode") || "admin123";
+      await fetch("/api/analytics/clear", { 
+        method: "POST",
+        headers: {
+          "x-admin-passcode": actualCode
+        }
+      });
+    } catch (err) {
+      console.error("Failed to clear telemetry database:", err);
+    }
+  }
+
+  public getSessionId(): string {
+    return this.currentSessionId;
   }
 }
 

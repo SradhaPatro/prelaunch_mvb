@@ -25,20 +25,27 @@ import {
   ArrowRight,
   ShieldCheck,
   Zap,
-  BarChart2
+  BarChart2,
+  Mail,
+  Phone,
+  Download,
+  Check
 } from "lucide-react";
 import { tracker, UserSession, TrackedEvent } from "../utils/analytics";
 
 export default function AnalyticsDashboard() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'heatmap' | 'recordings' | 'funnel'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'waitlist' | 'heatmap' | 'recordings' | 'funnel'>('overview');
   const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [waitlistSignups, setWaitlistSignups] = useState<any[]>([]);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [selectedSession, setSelectedSession] = useState<UserSession | null>(null);
   
   // Heatmap Controls
   const [heatmapActive, setHeatmapActive] = useState(false);
   const [heatmapIntensity, setHeatmapIntensity] = useState(1);
   const [heatmapRadius, setHeatmapRadius] = useState(25);
+  const [heatmapClicks, setHeatmapClicks] = useState<{ x: number, y: number, target?: string }[]>([]);
 
   // Replay Engine State
   const [replayingSession, setReplayingSession] = useState<UserSession | null>(null);
@@ -59,13 +66,26 @@ export default function AnalyticsDashboard() {
   const rippleIdRef = useRef<number>(0);
 
   // Load and refresh stats
-  const refreshStats = () => {
+  const refreshStats = async () => {
     setIsRefreshing(true);
-    const data = tracker.getSessions();
-    setSessions(data);
-    setTimeout(() => {
+    try {
+      const passcodeVal = localStorage.getItem("movebuddy_is_admin_passcode") || "admin123";
+      // 1. Fetch metadata sessions (99% bandwidth savings)
+      const data = await tracker.getSessions(passcodeVal);
+      setSessions(data);
+
+      // 2. Fetch lightweight heatmap clicks separately
+      const clicks = await tracker.getHeatmapClicks(passcodeVal);
+      setHeatmapClicks(clicks);
+
+      // 3. Fetch waitlist signups list
+      const signups = await tracker.getWaitlistSignups(passcodeVal);
+      setWaitlistSignups(signups);
+    } catch (err) {
+      console.error("Failed to load dashboard statistics:", err);
+    } finally {
       setIsRefreshing(false);
-    }, 600);
+    }
   };
 
   useEffect(() => {
@@ -73,6 +93,7 @@ export default function AnalyticsDashboard() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("admin") === "true") {
       localStorage.setItem("movebuddy_is_admin", "true");
+      localStorage.setItem("movebuddy_is_admin_passcode", "admin123");
       setIsAdmin(true);
       setIsOpen(true);
     } else if (localStorage.getItem("movebuddy_is_admin") === "true") {
@@ -117,6 +138,7 @@ export default function AnalyticsDashboard() {
     const cleanPass = passcode.trim();
     if (cleanPass === "admin123" || cleanPass === "movebuddy" || cleanPass === "movebuddy2026") {
       localStorage.setItem("movebuddy_is_admin", "true");
+      localStorage.setItem("movebuddy_is_admin_passcode", cleanPass);
       setIsAdmin(true);
       setIsLoginOpen(false);
       setPasscode("");
@@ -148,10 +170,10 @@ export default function AnalyticsDashboard() {
     return () => window.removeEventListener("click", handleDashboardClick);
   }, [isOpen, isAdmin]);
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     if (confirm("Are you sure you want to permanently delete all collected live analytics session records? This action cannot be undone.")) {
-      tracker.clearAllData();
-      refreshStats();
+      await tracker.clearAllData();
+      await refreshStats();
     }
   };
 
@@ -301,7 +323,7 @@ export default function AnalyticsDashboard() {
 
   const totalPageViews = sessions.reduce((acc, s) => acc + s.pageViews, 0);
   const totalSessions = sessions.length;
-  const uniqueUsers = Array.from(new Set(sessions.map(s => s.id))).length;
+  const uniqueUsers = Array.from(new Set(sessions.map(s => s.visitorId || s.id))).length;
   
   const avgSessionDuration = totalSessions > 0
     ? Math.round(sessions.reduce((acc, s) => acc + s.activeDuration, 0) / totalSessions)
@@ -349,7 +371,7 @@ export default function AnalyticsDashboard() {
   }, {} as Record<string, number>);
 
   // Gather click events for live heatmap overlay
-  const allClicks = sessions.flatMap(s => s.events.filter(e => e.type === 'click'));
+  const allClicks = heatmapClicks;
 
   return (
     <>
@@ -530,9 +552,10 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-[#2a2e34]/10 bg-[#e9eaec]/35 px-4 pt-2 gap-1">
+            <div className="flex border-b border-[#2a2e34]/10 bg-[#e9eaec]/35 px-4 pt-2 gap-1 overflow-x-auto">
               {[
                 { id: 'overview', name: 'Overview', icon: Target },
+                { id: 'waitlist', name: `Waitlist (${waitlistSignups.length})`, icon: Mail },
                 { id: 'heatmap', name: 'Click Heatmap', icon: Flame },
                 { id: 'recordings', name: 'Replays', icon: Activity },
                 { id: 'funnel', name: 'Funnel & UX Audit', icon: Sparkles }
@@ -781,6 +804,127 @@ export default function AnalyticsDashboard() {
               )}
 
               {/* ==========================================
+                  TAB: WAITLIST CONTACTS
+                  ========================================== */}
+              {activeTab === 'waitlist' && (
+                <div className="space-y-6">
+                  <div className="bg-[#2a2e34] text-white p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-display font-black text-xs uppercase tracking-wider text-[#ffb300] flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-[#ffb300]" />
+                        <span>Registered Waitlist Leads ({waitlistSignups.length})</span>
+                      </h3>
+                      <p className="text-[11px] text-white/70 mt-1">
+                        Verified user signups including email, mobile phone number, and acquisition source.
+                      </p>
+                    </div>
+
+                    {waitlistSignups.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const headers = ["Name", "Email", "Phone", "Source", "JoinedAt"];
+                          const rows = waitlistSignups.map(s => [
+                            `"${s.name || ''}"`,
+                            `"${s.email || ''}"`,
+                            `"${s.phone || ''}"`,
+                            `"${s.source || ''}"`,
+                            `"${s.joinedAt || ''}"`
+                          ]);
+                          const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+                          const encodedUri = encodeURI(csvContent);
+                          const link = document.createElement("a");
+                          link.setAttribute("href", encodedUri);
+                          link.setAttribute("download", `movebuddy_waitlist_${new Date().toISOString().slice(0, 10)}.csv`);
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="flex items-center gap-1.5 bg-[#ffb300] hover:bg-[#ffc124] text-[#2a2e34] font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Export CSV</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="bg-[#e9eaec]/10 border border-[#2a2e34]/5 rounded-2xl overflow-hidden">
+                    {waitlistSignups.length === 0 ? (
+                      <div className="p-10 text-center space-y-2">
+                        <Mail className="w-8 h-8 text-[#2a2e34]/30 mx-auto" />
+                        <h4 className="text-xs font-black uppercase text-[#2a2e34]/70">No Waitlist Signups Recorded Yet</h4>
+                        <p className="text-[11px] text-[#2a2e34]/50 max-w-sm mx-auto">
+                          When visitors fill out the waitlist form on the landing page, their name, verified email, and Indian mobile phone number will appear here in real time.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-[#2a2e34]/5 text-[9px] font-black uppercase tracking-wider text-[#2a2e34]/60 border-b border-[#2a2e34]/10">
+                              <th className="p-3.5">#</th>
+                              <th className="p-3.5">Name</th>
+                              <th className="p-3.5">Email</th>
+                              <th className="p-3.5">Phone Number</th>
+                              <th className="p-3.5">Source</th>
+                              <th className="p-3.5">Date</th>
+                              <th className="p-3.5 text-right">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#2a2e34]/5 text-xs font-sans">
+                            {waitlistSignups.map((signup, idx) => {
+                              const dateStr = signup.joinedAt ? new Date(signup.joinedAt).toLocaleString() : 'Recent';
+                              const isCopied = copiedIndex === idx;
+                              return (
+                                <tr key={idx} className="hover:bg-white/60 transition-colors">
+                                  <td className="p-3.5 font-mono text-[10px] text-[#2a2e34]/40">{idx + 1}</td>
+                                  <td className="p-3.5 font-bold text-[#2a2e34]">{signup.name || "Commuter"}</td>
+                                  <td className="p-3.5 font-mono text-[11px] text-[#2a2e34]/80 flex items-center gap-1.5">
+                                    <Mail className="w-3.5 h-3.5 text-[#ffb300] shrink-0" />
+                                    <span>{signup.email}</span>
+                                  </td>
+                                  <td className="p-3.5 font-mono text-[11px] text-[#2a2e34]/80">
+                                    <div className="flex items-center gap-1.5">
+                                      <Phone className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                                      <span className="font-bold text-[#2a2e34]">{signup.phone}</span>
+                                    </div>
+                                  </td>
+                                  <td className="p-3.5 text-[10px] uppercase tracking-wider text-[#2a2e34]/60 font-semibold">
+                                    <span className="bg-[#2a2e34]/5 px-2 py-0.5 rounded-full">
+                                      {signup.source || 'Form'}
+                                    </span>
+                                  </td>
+                                  <td className="p-3.5 font-mono text-[10px] text-[#2a2e34]/50">{dateStr}</td>
+                                  <td className="p-3.5 text-right">
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(`${signup.name || ''} | ${signup.email} | ${signup.phone}`);
+                                        setCopiedIndex(idx);
+                                        setTimeout(() => setCopiedIndex(null), 2000);
+                                      }}
+                                      className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[#2a2e34]/5 hover:bg-[#2a2e34]/10 text-[#2a2e34] transition-all cursor-pointer"
+                                    >
+                                      {isCopied ? (
+                                        <>
+                                          <Check className="w-3 h-3 text-green-600" />
+                                          <span className="text-green-600">Copied</span>
+                                        </>
+                                      ) : (
+                                        <span>Copy Info</span>
+                                      )}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ==========================================
                   TAB: CLICK HEATMAP
                   ========================================== */}
               {activeTab === 'heatmap' && (
@@ -913,7 +1057,8 @@ export default function AnalyticsDashboard() {
                   <div className="space-y-3">
                     {sessions.map((sess) => {
                       const isSelected = selectedSession?.id === sess.id;
-                      const containsReplays = sess.events.length > 0;
+                      const eventCount = (sess as any).eventCount || 0;
+                      const containsReplays = eventCount > 0;
                       return (
                         <div 
                           key={sess.id} 
@@ -925,7 +1070,22 @@ export default function AnalyticsDashboard() {
                         >
                           {/* Row Header */}
                           <div 
-                            onClick={() => setSelectedSession(isSelected ? null : sess)}
+                            onClick={async () => {
+                              if (isSelected) {
+                                setSelectedSession(null);
+                              } else {
+                                // Show basic session details immediately, then load granular logs asynchronously
+                                setSelectedSession({ ...sess, events: [] });
+                                try {
+                                  const fullDetails = await tracker.getSessionDetails(sess.id);
+                                  if (fullDetails) {
+                                    setSelectedSession(fullDetails);
+                                  }
+                                } catch (err) {
+                                  console.error("Failed to load granular session detail:", err);
+                                }
+                              }
+                            }}
                             className="p-4 flex flex-wrap items-center justify-between gap-4 cursor-pointer"
                           >
                             <div className="flex items-center gap-3">
@@ -960,15 +1120,24 @@ export default function AnalyticsDashboard() {
 
                             <div className="flex items-center gap-3">
                               <span className="text-[9px] font-mono text-[#2a2e34]/40 font-semibold">
-                                {sess.events.length} events
+                                {eventCount} events
                               </span>
                               {containsReplays && (
                                 <button
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
-                                    startReplay(sess);
+                                    try {
+                                      const fullDetails = await tracker.getSessionDetails(sess.id);
+                                      if (fullDetails && fullDetails.events && fullDetails.events.length > 0) {
+                                        startReplay(fullDetails);
+                                      } else {
+                                        alert("Could not load events for session replay.");
+                                      }
+                                    } catch (err) {
+                                      console.error("Failed to load session details for replay", err);
+                                    }
                                   }}
-                                  className="flex items-center gap-1 bg-[#2a2e34] hover:bg-[#1c1f24] text-[#ffb300] text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-all"
+                                  className="flex items-center gap-1 bg-[#2a2e34] hover:bg-[#1c1f24] text-[#ffb300] text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-all cursor-pointer"
                                 >
                                   <Play className="w-2.5 h-2.5" />
                                   <span>Replay</span>

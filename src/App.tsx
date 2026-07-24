@@ -138,16 +138,59 @@ export default function App() {
   // Handle local waitlist single email or phone submission with local persistence
   const handleSubmitEmail = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitted) return; // Prevent double clicks
     const val = email.trim();
     if (!val) return;
-    
-    const isEmail = val.includes("@") && val.includes(".");
-    const digits = val.replace(/[^0-9]/g, "");
-    const isPhone = digits.length >= 10;
-    
-    if (!isEmail && !isPhone) {
-      setErrorMsg("Please enter a valid email or phone number.");
+
+    // SQL Injection Detection
+    const sqlPattern = /('|--|#|\/\*|\*\/|union|select|insert|delete|drop|update|where|or\s+1\s*=\s*1)/i;
+    // XSS Detection
+    const xssPattern = /<script|javascript:|on\w+\s*=/i;
+
+    if (sqlPattern.test(val)) {
+      setErrorMsg("Security Alert: Suspicious SQL syntax detected.");
       return;
+    }
+    if (xssPattern.test(val)) {
+      setErrorMsg("Security Alert: Suspicious script tags detected.");
+      return;
+    }
+    
+    const isEmail = val.includes("@");
+    
+    let sanitizedEmail = "";
+    let sanitizedPhone = "";
+
+    if (isEmail) {
+      // Validate Email Regex
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(val)) {
+        setErrorMsg("Please enter a valid email address.");
+        return;
+      }
+      // Disposable Email check
+      const disposableDomains = ["tempmail", "temp-mail", "yopmail", "mailinator", "dispostable", "10minutemail", "getnada", "guerrillamail"];
+      const domain = val.split("@")[1]?.toLowerCase() || "";
+      const isDisposable = disposableDomains.some(d => domain.includes(d));
+      if (isDisposable) {
+        setErrorMsg("Disposable emails are blocked. Please use a work or permanent personal email.");
+        return;
+      }
+      sanitizedEmail = val;
+    } else {
+      // Validate Phone Number
+      const cleanDigits = val.replace(/[^0-9]/g, "");
+      const phoneRegex = /^(?:\+91|91)?[6-9]\d{9}$/;
+      if (!phoneRegex.test(val)) {
+        setErrorMsg("Please enter a valid 10-digit Indian mobile number (e.g., 9876543210).");
+        return;
+      }
+      // Block repetitive patterns
+      if (/(.)\1{9}/.test(cleanDigits)) {
+        setErrorMsg("Please provide a valid Indian mobile number (repeated digits blocked).");
+        return;
+      }
+      sanitizedPhone = val;
     }
     
     setErrorMsg("");
@@ -164,16 +207,20 @@ export default function App() {
     // Persist waitlist signups in localStorage safely
     try {
       const list = JSON.parse(localStorage.getItem("movebuddy_waitlist") || "[]");
-      const phoneVal = isPhone ? val : phone;
-      const emailVal = isEmail ? val : email;
-      list.push({
-        name: "Anonymous Commuter",
-        email: emailVal,
-        phone: phoneVal,
-        joinedAt: new Date().toISOString(),
-        source: "LandingCinematic"
-      });
-      localStorage.setItem("movebuddy_waitlist", JSON.stringify(list));
+      const exists = list.some((item: any) => 
+        (sanitizedEmail && item.email === sanitizedEmail) || 
+        (sanitizedPhone && item.phone === sanitizedPhone)
+      );
+      if (!exists) {
+        list.push({
+          name: "Anonymous Commuter",
+          email: sanitizedEmail,
+          phone: sanitizedPhone,
+          joinedAt: new Date().toISOString(),
+          source: "LandingCinematic"
+        });
+        localStorage.setItem("movebuddy_waitlist", JSON.stringify(list));
+      }
     } catch (err) {
       console.error("Local storage persistence error:", err);
     }
